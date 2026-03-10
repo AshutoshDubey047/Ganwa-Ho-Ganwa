@@ -12,40 +12,34 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
 const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
-let currentPlaylistSongs = []; // Auto-play ke liye list track karne ke liye
+let currentQueue = []; 
 let currentSongIndex = -1;
 
 // --- 1. LIVE SYNC ---
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
-    updateDropdown(allData);
-    const currentView = document.getElementById('playlistSelect').value || "ALL_SONGS";
-    renderSongs(allData, currentView);
-});
-
-function updateDropdown(allData) {
     const select = document.getElementById('playlistSelect');
-    const currentVal = select.value;
-    let html = '<option value="ALL_SONGS">✨ All Songs</option>';
-    html += '<option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
+    const currentVal = select.value || "ALL_SONGS";
+    
+    // Update Dropdown
+    let optionsHTML = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
     if (allData) {
         Object.keys(allData).forEach(pName => {
             if (!protectedPlaylists.includes(pName) && pName !== "_init") {
-                html += `<option value="${pName}">${pName}</option>`;
+                optionsHTML += `<option value="${pName}">${pName}</option>`;
             }
         });
     }
-    if (select.innerHTML !== html) {
-        select.innerHTML = html;
-        select.value = currentVal || "ALL_SONGS";
-    }
-}
+    select.innerHTML = optionsHTML;
+    select.value = currentVal; 
+    renderSongs(allData, currentVal);
+});
 
-// --- 2. RENDER & AUTO-PLAY LOGIC ---
+// --- 2. RENDER & QUEUE ---
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
-    currentPlaylistSongs = []; // Reset current queue
+    currentQueue = []; 
     if (!allData) return;
 
     for (let pName in allData) {
@@ -54,60 +48,65 @@ function renderSongs(allData, selectedP) {
         for (let id in songs) {
             if (id === "_init") continue;
             const song = songs[id];
-            currentPlaylistSongs.push(song); // Queue mein add karo
-            
-            let index = currentPlaylistSongs.length - 1;
+            currentQueue.push({ name: song.name, url: song.url });
+            let index = currentQueue.length - 1;
+
             list.innerHTML += `
                 <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #1db954;">
-                    <span><b>${song.name}</b><br><small style="color:#666;">Playlist: ${pName}</small></span>
+                    <span><b style="color:white;">${song.name}</b><br><small style="color:#666;">Playlist: ${pName}</small></span>
                     <div>
-                        <button onclick="playSong(${index})" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px;">▶</button>
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; border:none; padding:8px 12px; border-radius:5px; color:white; margin-left:5px;">🗑️</button>
+                        <button onclick="playSong(${index})" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
+                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; border:none; padding:8px 12px; border-radius:5px; color:white; margin-left:5px; cursor:pointer;">🗑️</button>
                     </div>
                 </li>`;
         }
     }
 }
 
-// --- 3. PLAYER & AUTO-NEXT ---
+// --- 3. AUDIO PLAYER & AUTO-NEXT ---
 function playSong(index) {
-    if (index >= currentPlaylistSongs.length) {
-        console.log("Playlist khatam!");
-        return;
-    }
-    
+    if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
-    const song = currentPlaylistSongs[index];
-    const match = song.url.match(/[-\w]{25,}/);
-    
-    if (match) {
-        document.getElementById('playing-now').innerText = "Playing: " + song.name;
-        const playerWrapper = document.getElementById('drive-player-wrapper');
-        
-        // Iframe with onload event for next song
-        playerWrapper.innerHTML = `
-            <iframe id="drivePlayer" src="https://drive.google.com/file/d/${match[0]}/preview" 
-            width="100%" height="60" style="border:none; border-radius:10px; background:#000;" 
-            allow="autoplay"></iframe>`;
+    const song = currentQueue[index];
+    const audio = document.getElementById('mainAudio');
+    const title = document.getElementById('playing-now');
 
-        // Note: Google Drive iframe auto-next detect karna mushkil hota hai because of security,
-        // Lekin hum ek timer laga sakte hain ya user ko manually next bol sakte hain.
-        // Asli auto-play ke liye aapko "Direct Link" (uc?id=...) use karke <audio> tag lagana padega.
+    const fileId = song.url.match(/[-\w]{25,}/);
+    if (fileId) {
+        // Direct Download Link for Auto-play to work
+        const directLink = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
+        title.innerText = "Playing: " + song.name;
+        audio.src = directLink;
+        audio.play().catch(e => console.log("Playback error:", e));
+    } else {
+        alert("Invalid Drive Link!");
     }
 }
 
-// --- 4. DOUBLE CHECK DELETE SONG ---
+function playNextSong() {
+    let next = currentSongIndex + 1;
+    if (next < currentQueue.length) {
+        playSong(next);
+    } else {
+        document.getElementById('playing-now').innerText = "Playlist Ended";
+    }
+}
+
+// --- 4. DELETE & ACTIONS ---
 function deleteSong(pName, sId) {
-    const firstCheck = confirm("Check 1: Kya aap ye gaana delete karna chahte hain?");
-    if (firstCheck) {
-        const secondCheck = confirm("Check 2 (FINAL): Pakka na? Ye wapas nahi aayega!");
-        if (secondCheck) {
-            db.ref(`collections/${pName}/${sId}`).remove();
-        }
+    if (confirm("Check 1: Delete this song?") && confirm("Check 2: Are you REALLY sure?")) {
+        db.ref(`collections/${pName}/${sId}`).remove();
     }
 }
 
-// --- BAAKI FUNCTIONS ---
+function deleteFullPlaylist() {
+    const name = document.getElementById('playlistSelect').value;
+    if (protectedPlaylists.includes(name)) return alert("Protected!");
+    if (confirm(`Delete entire "${name}"?`) && confirm("Final Warning!")) {
+        db.ref('collections/' + name).remove();
+    }
+}
+
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -130,20 +129,9 @@ function createNewPlaylist() {
     let input = document.getElementById('newPlaylistInput');
     let name = input.value.trim();
     if (name && !protectedPlaylists.includes(name)) {
-        db.ref('collections/' + name).update({ _init: true }).then(() => {
+        db.ref('collections/' + name).set({ _init: true }).then(() => {
             input.value = "";
             document.getElementById('playlistSelect').value = name;
-            onPlaylistChange();
-        });
-    }
-}
-
-function deleteFullPlaylist() {
-    const name = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(name)) return alert("Reserved!");
-    if (confirm(`Delete full playlist "${name}"?`) && confirm("Final Warning!")) {
-        db.ref('collections/' + name).remove().then(() => {
-            document.getElementById('playlistSelect').value = "ALL_SONGS";
             onPlaylistChange();
         });
     }
