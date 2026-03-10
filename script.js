@@ -15,7 +15,7 @@ const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SON
 let currentQueue = [];
 let currentSongIndex = -1;
 
-// --- DATA SYNC ---
+// --- 1. DATA SYNC & RENDER ---
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
     const select = document.getElementById('playlistSelect');
@@ -50,60 +50,76 @@ function renderSongs(allData, selectedP) {
             let idx = currentQueue.length - 1;
 
             list.innerHTML += `
-                <div class="song-card" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:12px; border-left:5px solid #1db954; color:white;">
-                    <div style="flex:1; cursor:pointer;" onclick="playSong(${idx})">
-                        <b>${song.name}</b><br>
-                        <small style="color:#888;">Playlist: ${pName}</small>
+                <div class="song-card" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:12px; border-left:5px solid #1db954; cursor:pointer;">
+                    <div style="flex:1;" onclick="playSong(${idx})">
+                        <b style="color:white;">${song.name}</b><br>
+                        <small style="color:#666;">${pName}</small>
                     </div>
-                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:20px; cursor:pointer;">🗑️</button>
+                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:18px; padding:10px;">🗑️</button>
                 </div>`;
         }
     }
 }
 
-// --- PLAYER LOGIC (BYPASS) ---
+// --- 2. THE AUTO-PLAY LOGIC ---
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
     const song = currentQueue[index];
-    const playerBox = document.getElementById('player-frame-container');
+    const playerContainer = document.getElementById('player-frame-container');
     const titleText = document.getElementById('playing-now');
 
     const fileId = song.url.match(/[-\w]{25,}/);
     
     if (fileId) {
         titleText.innerText = "▶ Playing: " + song.name;
-        // IS BAAR HUM IFRAME NAHI, AUDIO TAG USE KARENGE WITH BYPASS LINK
-        const directStreamUrl = `https://docs.google.com/uc?export=open&id=${fileId[0]}`;
         
-        playerBox.innerHTML = `
-            <audio id="html5Player" controls autoplay style="width:100%; height:50px; filter: invert(100%);">
-                <source src="${directStreamUrl}" type="audio/mpeg">
+        // Direct Stream Link (Bypassing Preview Page for Auto-Play)
+        const streamUrl = `https://docs.google.com/uc?export=open&id=${fileId[0]}`;
+        
+        // Using Native Audio Tag so 'onended' event works
+        playerContainer.innerHTML = `
+            <audio id="mainAudioPlayer" controls autoplay style="width:100%; filter:invert(100%);">
+                <source src="${streamUrl}" type="audio/mpeg">
                 <source src="https://docs.google.com/uc?export=download&id=${fileId[0]}" type="audio/mpeg">
                 Your browser does not support audio.
             </audio>
         `;
 
-        // Auto-next logic for Audio Tag
-        const audio = document.getElementById('html5Player');
+        const audio = document.getElementById('mainAudioPlayer');
+        
+        // THIS IS THE KEY: When song ends, play next automatically
         audio.onended = function() {
+            console.log("Song ended, playing next...");
             playNextSong();
         };
-        
-        // Error handling if Google blocks it
+
+        // If Google blocks the first link, try to force play
         audio.onerror = function() {
-            titleText.innerText = "❌ Google Blocked Streaming. Try Clicking 'Next' or Refresh.";
+            console.log("Stream blocked, trying secondary link...");
+            audio.src = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
+            audio.play();
         };
+
+    } else {
+        alert("Link format sahi nahi hai!");
     }
 }
 
 function playNextSong() {
     let next = currentSongIndex + 1;
-    if (next < currentQueue.length) playSong(next);
+    if (next < currentQueue.length) {
+        playSong(next);
+    } else {
+        document.getElementById('playing-now').innerText = "Playlist Completed ✅";
+    }
 }
 
+// --- 3. MANAGEMENT FUNCTIONS ---
 function deleteSong(pName, sId) {
-    if (confirm("Delete?")) db.ref(`collections/${pName}/${sId}`).remove();
+    if (confirm("Delete this song?")) {
+        db.ref(`collections/${pName}/${sId}`).remove();
+    }
 }
 
 function onPlaylistChange() {
@@ -126,7 +142,9 @@ function addSong() {
 
 function createNewPlaylist() {
     const name = document.getElementById('newPlaylistInput').value.trim();
-    if (name) db.ref('collections/' + name).update({ _init: true }).then(() => {
-        document.getElementById('newPlaylistInput').value = "";
-    });
+    if (name) {
+        db.ref('collections/' + name).update({ _init: true }).then(() => {
+            document.getElementById('newPlaylistInput').value = "";
+        });
+    }
 }
