@@ -50,42 +50,50 @@ function renderSongs(allData, selectedP) {
             let idx = currentQueue.length - 1;
 
             list.innerHTML += `
-                <div class="song-card" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:12px; border-left:5px solid #1db954;">
+                <div class="song-card" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:12px; border-left:5px solid #1db954; color:white;">
                     <div style="flex:1; cursor:pointer;" onclick="playSong(${idx})">
-                        <b style="color:white;">${song.name}</b><br>
-                        <small style="color:#666;">Playlist: ${pName}</small>
+                        <b>${song.name}</b><br>
+                        <small style="color:#888;">Playlist: ${pName}</small>
                     </div>
-                    <div style="display:flex; gap:15px; align-items:center;">
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:18px;">🗑️</button>
-                    </div>
+                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:20px; cursor:pointer;">🗑️</button>
                 </div>`;
         }
     }
 }
 
-// --- PLAYER LOGIC ---
+// --- PLAYER LOGIC (BYPASS) ---
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
     const song = currentQueue[index];
-    const playerContainer = document.getElementById('player-frame-container');
+    const playerBox = document.getElementById('player-frame-container');
     const titleText = document.getElementById('playing-now');
 
-    // Extract ID
     const fileId = song.url.match(/[-\w]{25,}/);
     
     if (fileId) {
         titleText.innerText = "▶ Playing: " + song.name;
-        // GOOGLE DRIVE OFFICIAL EMBED URL
-        const embedUrl = `https://drive.google.com/file/d/${fileId[0]}/preview`;
+        // IS BAAR HUM IFRAME NAHI, AUDIO TAG USE KARENGE WITH BYPASS LINK
+        const directStreamUrl = `https://docs.google.com/uc?export=open&id=${fileId[0]}`;
         
-        playerContainer.innerHTML = `
-            <iframe src="${embedUrl}" width="100%" height="150" 
-            style="border:2px solid #1db954; border-radius:10px; background:#000;" 
-            allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        playerBox.innerHTML = `
+            <audio id="html5Player" controls autoplay style="width:100%; height:50px; filter: invert(100%);">
+                <source src="${directStreamUrl}" type="audio/mpeg">
+                <source src="https://docs.google.com/uc?export=download&id=${fileId[0]}" type="audio/mpeg">
+                Your browser does not support audio.
+            </audio>
         `;
-    } else {
-        alert("Invalid Link! Make sure it's a Google Drive link.");
+
+        // Auto-next logic for Audio Tag
+        const audio = document.getElementById('html5Player');
+        audio.onended = function() {
+            playNextSong();
+        };
+        
+        // Error handling if Google blocks it
+        audio.onerror = function() {
+            titleText.innerText = "❌ Google Blocked Streaming. Try Clicking 'Next' or Refresh.";
+        };
     }
 }
 
@@ -95,12 +103,9 @@ function playNextSong() {
 }
 
 function deleteSong(pName, sId) {
-    if (confirm("Delete this song?")) {
-        db.ref(`collections/${pName}/${sId}`).remove();
-    }
+    if (confirm("Delete?")) db.ref(`collections/${pName}/${sId}`).remove();
 }
 
-// MANAGEMENT
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -120,11 +125,8 @@ function addSong() {
 }
 
 function createNewPlaylist() {
-    const input = document.getElementById('newPlaylistInput');
-    const name = input.value.trim();
-    if (name) {
-        db.ref('collections/' + name).update({ _init: true }).then(() => {
-            input.value = "";
-        });
-    }
+    const name = document.getElementById('newPlaylistInput').value.trim();
+    if (name) db.ref('collections/' + name).update({ _init: true }).then(() => {
+        document.getElementById('newPlaylistInput').value = "";
+    });
 }
