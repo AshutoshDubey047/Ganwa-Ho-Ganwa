@@ -15,13 +15,13 @@ const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SON
 let currentQueue = [];
 let currentSongIndex = -1;
 
-// SYNC DATA
+// --- 1. LIVE DATA SYNC ---
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
     const select = document.getElementById('playlistSelect');
     const currentVal = select.value || "ALL_SONGS";
     
-    let options = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
+    let options = '<option value="ALL_SONGS">✨ All Songs (Everything)</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
     
     if (allData) {
         Object.keys(allData).forEach(p => {
@@ -35,6 +35,7 @@ db.ref('collections/').on('value', (snap) => {
     renderSongs(allData, currentVal);
 });
 
+// --- 2. RENDER SONGS ---
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
@@ -51,51 +52,58 @@ function renderSongs(allData, selectedP) {
             let idx = currentQueue.length - 1;
 
             const fileId = song.url.match(/[-\w]{25,}/);
-            const dl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId[0]}` : "#";
+            const dlLink = fileId ? `https://docs.google.com/uc?export=download&id=${fileId[0]}` : "#";
 
             list.innerHTML += `
-                <li style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:10px; border-left:5px solid #1db954;">
+                <div class="song-card" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:12px; border-left:5px solid #fb8c00;">
                     <div style="flex:1; cursor:pointer;" onclick="playSong(${idx})">
-                        <b style="color:white; display:block;">${song.name}</b>
+                        <b style="color:white; font-size:15px; text-transform:uppercase;">${song.name}</b><br>
                         <small style="color:#666;">Playlist: ${pName}</small>
                     </div>
-                    <div style="display:flex; gap:15px; align-items:center;">
-                        <a href="${dl}" target="_blank" style="text-decoration:none; font-size:20px;">📥</a>
+                    <div style="display:flex; gap:20px; align-items:center;">
+                        <a href="${dlLink}" target="_blank" style="text-decoration:none; font-size:20px;" title="Download">📥</a>
                         <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:#ff4444; font-size:20px; cursor:pointer;">🗑️</button>
                     </div>
-                </li>`;
+                </div>`;
         }
     }
 }
 
+// --- 3. THE "STAY ON WEBSITE" PLAY LOGIC ---
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
     const song = currentQueue[index];
-    const playerBox = document.getElementById('player-box');
-    const title = document.getElementById('playing-now');
+    const playerContainer = document.getElementById('player-frame-container');
+    const titleText = document.getElementById('playing-now');
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
-        title.innerText = "▶ Playing: " + song.name;
-        playerBox.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="60" style="border:none; border-radius:10px; background:#000;" allow="autoplay"></iframe>`;
+        titleText.innerText = "▶ Loading: " + song.name;
+        // Direct Preview Link is the only way Google allows streaming inside a website
+        playerContainer.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none; border-radius:10px; background:#000;" allow="autoplay"></iframe>`;
+        
+        setTimeout(() => {
+            titleText.innerText = "▶ Playing: " + song.name;
+        }, 2000);
     } else {
-        alert("Bhai, ye Google Drive link sahi nahi hai!");
+        alert("Bhai, is gaane ka link sahi nahi hai. Google Drive link check karo!");
     }
 }
 
 function playNextSong() {
     let next = currentSongIndex + 1;
     if (next < currentQueue.length) playSong(next);
+    else alert("Playlist khatam ho gayi!");
 }
 
+// --- 4. DELETE & MANAGEMENT ---
 function deleteSong(pName, sId) {
-    if (confirm("Check 1: Delete?") && confirm("Check 2: CONFIRM?")) {
+    if (confirm("Check 1: Delete this song?") && confirm("Check 2: CONFIRM?")) {
         db.ref(`collections/${pName}/${sId}`).remove();
     }
 }
 
-// MANAGEMENT
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -110,6 +118,7 @@ function addSong() {
         db.ref('collections/' + target).push({ name, url }).then(() => {
             document.getElementById('songName').value = "";
             document.getElementById('songUrl').value = "";
+            alert("Gaana add ho gaya!");
         });
     }
 }
@@ -128,8 +137,8 @@ function createNewPlaylist() {
 
 function deleteFullPlaylist() {
     const name = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(name)) return alert("Protected!");
-    if (confirm(`Delete ${name}?`) && confirm("Last Warning!")) {
+    if (protectedPlaylists.includes(name)) return alert("Is playlist ko delete nahi kar sakte!");
+    if (confirm(`Puri "${name}" playlist udani hai?`) && confirm("Last Warning: Sab gayab ho jayega!")) {
         db.ref('collections/' + name).remove();
     }
 }
