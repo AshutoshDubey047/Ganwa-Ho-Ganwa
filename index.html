@@ -3,47 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Fixed</title>
+    <title>Ganwa Player Pro | 2026 Edition</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-    <div class="container" style="padding-bottom: 220px;">
-        <header><h1>🎶 Ganwa-Ho-Ganwa Ultra</h1></header>
 
-        <div class="input-card">
-            <h3>📁 My Playlists</h3>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
-                <button onclick="createNewPlaylist()" style="background:#fff; color:#000; font-weight:bold; padding:10px 15px; border-radius:8px;">Create & Save</button>
+    <div class="container" style="max-width: 600px; margin: auto; padding: 20px; padding-bottom: 180px;">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #1db954; font-size: 2.5rem;">🎶 Ganwa-Ho-Ganwa</h1>
+            <p style="color: #888;">Your Private Music Cloud</p>
+        </header>
+
+        <div class="input-card" style="background: #181818; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #333;">
+            <h3 style="color: #fff; margin-top: 0;">📁 Playlists</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name..." style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: #282828; color: white;">
+                <button onclick="createNewPlaylist()" style="background: #fff; color: #000; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;">Create</button>
             </div>
-            <p style="margin-top:10px; font-size:14px; color:#888;">Select Playlist View:</p>
-            <select id="playlistSelect" onchange="onPlaylistChange()" style="width:100%; padding:12px; background:#181818; color:white; border-radius:8px; border:1px solid #333;">
+            
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; margin-top: 15px; background: #282828; color: white; border-radius: 8px; border: 1px solid #444; cursor: pointer;">
                 </select>
-            <button onclick="deleteFullPlaylist()" style="background:#ff4444; color:white; width:100%; margin-top:10px; border:none; padding:10px; border-radius:8px; font-size:12px; cursor:pointer;">🗑️ Delete Selected Playlist</button>
+            
+            <button onclick="deleteFullPlaylist()" style="width: 100%; background: #ff444422; color: #ff4444; border: 1px solid #ff4444; margin-top: 10px; padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer;">🗑️ Delete Selected Playlist</button>
         </div>
 
-        <div class="input-card">
-            <h3>➕ Add Song</h3>
-            <p style="font-size:12px; color:#1db954;">Adding to: <b id="targetDisplayName">All Songs</b></p>
-            <input type="text" id="songName" placeholder="Song Name">
-            <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <button onclick="addSong()" style="background:#1db954; color:black; width:100%; font-weight:bold; padding:15px; border-radius:10px; border:none; margin-top:10px; cursor:pointer;">Add Song</button>
+        <div class="input-card" style="background: #181818; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #333;">
+            <h3 style="color: #fff; margin-top: 0;">➕ Add Song</h3>
+            <p style="font-size: 12px; color: #1db954; margin-bottom: 10px;">Target: <b id="targetDisplayName">All Songs</b></p>
+            <input type="text" id="songName" placeholder="Song Name" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #282828; color: white; margin-bottom: 10px; box-sizing: border-box;">
+            <input type="text" id="songUrl" placeholder="Paste Google Drive Link" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #282828; color: white; margin-bottom: 10px; box-sizing: border-box;">
+            <button onclick="addSong()" style="width: 100%; background: #1db954; color: black; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer;">Add to Cloud</button>
         </div>
 
-        <div id="playlist"></div>
+        <div id="playlist" class="playlist-section">
+            </div>
 
-        <footer style="position:fixed; bottom:0; left:0; width:100%; background:#000; border-top:2px solid #1db954; padding:15px; z-index:9999;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; max-width:800px; margin-left:auto; margin-right:auto;">
-                <p id="playing-now" style="color:#1db954; font-weight:bold; margin:0; font-size:14px;">Select a song to play</p>
-                <button onclick="playNextSong()" style="background:#333; color:white; border:1px solid #1db954; padding:5px 15px; border-radius:5px; cursor:pointer;">NEXT ⏭️</button>
-            </div>
-            <div id="player-frame-container" style="max-width:800px; margin:0 auto;">
-                <div style="height:80px; background:#121212; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#444; border:1px dashed #333; font-size:14px;">Player Ready - Click Play on a Song</div>
-            </div>
-        </footer>
     </div>
+
+    <footer style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); border-top: 2px solid #1db954; padding: 20px; z-index: 1000; box-sizing: border-box;">
+        <div style="max-width: 600px; margin: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <p id="playing-now" style="color: #1db954; font-weight: bold; margin: 0; font-size: 14px;">Music Stopped</p>
+                    <small id="playlist-info" style="color: #666; font-size: 11px;">Select a track to play</small>
+                </div>
+                <button onclick="playNextSong()" style="background: #333; color: #fff; border: 1px solid #1db954; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold;">NEXT ⏭️</button>
+            </div>
+            
+            <div id="player-frame-container">
+                <div style="height: 60px; background: #121212; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #444; border: 1px dashed #333;">
+                    Waiting for input...
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script src="script.js"></script>
 </body>
 </html>
