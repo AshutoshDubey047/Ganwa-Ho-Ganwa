@@ -8,7 +8,10 @@ const firebaseConfig = {
     appId: "1:28027251724:web:792638e52fd8d842671229"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 
 let currentPlaylist = "Default";
@@ -19,9 +22,8 @@ function switchPlaylist() {
     if (name) {
         currentPlaylist = name;
         document.getElementById('currentPName').innerText = name;
-        document.getElementById('targetPName').innerText = name;
+        document.getElementById('newPlaylistName').value = "";
         loadSongs();
-        alert("Switched to: " + name);
     }
 }
 
@@ -34,61 +36,72 @@ function addSong() {
         db.ref('collections/' + currentPlaylist).push({
             name: name,
             url: url
+        }).then(() => {
+            document.getElementById('songName').value = "";
+            document.getElementById('songUrl').value = "";
         });
-        document.getElementById('songName').value = "";
-        document.getElementById('songUrl').value = "";
+    } else {
+        alert("Please fill both fields!");
     }
 }
 
 // 3. DELETE SONG
 function deleteSong(id) {
-    if(confirm("Delete karna hai?")) {
+    if(confirm("Delete this song?")) {
         db.ref('collections/' + currentPlaylist + '/' + id).remove();
     }
 }
 
-// 4. LOAD SONGS
+// 4. LIVE LOAD SONGS
 function loadSongs() {
     db.ref('collections/' + currentPlaylist).on('value', (snap) => {
         const data = snap.val();
-        const list = document.getElementById('playlistDisplay');
+        const list = document.getElementById('playlist');
         list.innerHTML = "";
+        
+        if (!data) {
+            list.innerHTML = "<p style='text-align:center; color:#888;'>No songs in this playlist.</p>";
+            return;
+        }
+
         for (let id in data) {
+            const song = data[id];
             list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; background:#181818; padding:10px; margin:5px; border-radius:8px;">
-                    <span><b>${data[id].name}</b></span>
+                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:10px 0; padding:15px; border-radius:10px; border-left:4px solid #1db954;">
+                    <span><b>${song.name}</b></span>
                     <div>
-                        <button onclick="playAntiBlock('${data[id].url}', '${data[id].name}')">▶ Play</button>
-                        <button onclick="deleteSong('${id}')" style="background:red; margin-left:5px;">🗑️</button>
+                        <button onclick="playSong('${song.url}', '${song.name}')" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">▶ Play</button>
+                        <button onclick="deleteSong('${id}')" style="background:#ff4444; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; color:white; margin-left:5px;">🗑️</button>
                     </div>
                 </li>`;
         }
     });
 }
 
-// 5. ANTI-BLOCK PLAY LOGIC (Using Embed)
-function playAntiBlock(rawUrl, name) {
-    const wrapper = document.getElementById('drive-frame-wrapper');
+// 5. ANTI-BLOCK PLAYER (Using Google Drive Preview)
+function playSong(rawUrl, name) {
+    const wrapper = document.getElementById('drive-player-wrapper');
     const title = document.getElementById('playing-now');
+    
+    // Extract ID
     const match = rawUrl.match(/[-\w]{25,}/);
-
     if (match) {
         const fileId = match[0];
-        title.innerText = "Playing: " + name;
+        title.innerText = "Current Song: " + name;
         
-        // Google Drive ka official preview player (Isse block nahi hota)
+        // Anti-Block Iframe Player
         wrapper.innerHTML = `
             <iframe 
                 src="https://drive.google.com/file/d/${fileId}/preview" 
                 width="100%" 
-                height="80" 
-                allow="autoplay"
-                style="border:none; border-radius:10px; background:#000;">
+                height="60" 
+                style="border:none; border-radius:10px; background:#000;"
+                allow="autoplay">
             </iframe>`;
     } else {
         alert("Invalid Drive Link!");
     }
 }
 
-// Initial Load
+// Start App
 loadSongs();
