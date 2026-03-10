@@ -3,59 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Pro</title>
+    <title>Ganwa Player Pro Max</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
+        :root { --green: #1db954; --black: #121212; }
         body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: #121212; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
+        .container { max-width: 500px; margin: auto; padding: 20px; }
+        .card { background: var(--black); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
         select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
-        .btn-green { background: #1db954; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
+        .btn-add { background: var(--green); color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
         
-        /* Song List Style */
-        .song-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: #181818; padding: 15px; margin-bottom: 10px; 
-            border-radius: 10px; border-left: 5px solid #1db954;
-        }
+        /* SONG ITEM FIX */
+        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid var(--green); }
         .song-info { flex: 1; cursor: pointer; }
-        .del-btn { 
-            background: #ff4444; color: white; border: none; 
-            padding: 8px 12px; border-radius: 6px; font-weight: bold; 
-            cursor: pointer; margin-left: 10px; font-size: 11px;
-        }
+        
+        /* DELETE BUTTON RED */
+        .del-btn { background: #ff4444; color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; min-width: 65px; }
 
-        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid #1db954; padding: 15px; box-sizing: border-box; z-index: 1000; }
-        #status { color: #1db954; font-weight: bold; font-size: 14px; margin-bottom: 8px; display: block; text-align: center; }
+        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid var(--green); padding: 15px; box-sizing: border-box; text-align: center; z-index: 1000; }
+        #status { color: var(--green); font-weight: bold; margin-bottom: 8px; font-size: 14px; display: block; }
+        #playerContainer { background: #000; border-radius: 10px; overflow: hidden; height: 80px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color: #1db954; text-align: center;">🎶 Ganwa Player</h1>
+    <h1 style="color: var(--green); text-align: center;">🎶 Ganwa Player</h1>
 
     <div class="card">
-        <select id="playlistSelect" onchange="loadSongs()"><option value="ALL">✨ All Songs</option></select>
+        <select id="playlistSelect" onchange="loadSongs()"><option value="ALL">✨ All Playlists</option></select>
     </div>
 
     <div class="card">
         <input type="text" id="songName" placeholder="Song Name">
         <input type="text" id="songUrl" placeholder="Google Drive Link">
-        <button class="btn-green" onclick="addSong()">➕ ADD SONG</button>
+        <button class="btn-add" onclick="addSong()">➕ ADD SONG</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <span id="status">Select a track to play</span>
-    <div id="playerContainer" style="background: #000; border-radius: 8px; overflow: hidden; height: 80px;">
-        <div style="color:#444; text-align:center; line-height:80px;">Ready to play</div>
+    <span id="status">Select a track...</span>
+    <div id="playerContainer">
+        <div style="padding-top:30px; color:#444;">Iframe Player Ready</div>
     </div>
-    <div style="text-align:center; margin-top:10px;">
-        <button onclick="playNext()" style="background:none; border:1px solid #1db954; color:white; padding:5px 20px; border-radius:20px; cursor:pointer;">NEXT SONG ⏭️</button>
-    </div>
+    <button onclick="playNext()" style="background:none; border:1px solid var(--green); color:white; padding:5px 20px; border-radius:20px; cursor:pointer;">NEXT ⏭️</button>
 </footer>
 
 <script src="script.js"></script>
