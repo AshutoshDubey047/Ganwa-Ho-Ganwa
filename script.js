@@ -15,7 +15,7 @@ let currentQueue = [];
 let currentSongIndex = -1;
 const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
 
-// 1. Live Update List
+// 1. Sync Playlists & Songs
 db.ref('collections/').on('value', (snap) => {
     const data = snap.val();
     const select = document.getElementById('playlistSelect');
@@ -24,7 +24,9 @@ db.ref('collections/').on('value', (snap) => {
     let options = '<option value="ALL_SONGS">✨ All Songs</option>';
     if (data) {
         Object.keys(data).forEach(p => {
-            if (!protectedPlaylists.includes(p) && p !== "_init") options += `<option value="${p}">${p}</option>`;
+            if (!protectedPlaylists.includes(p) && p !== "_init") {
+                options += `<option value="${p}">${p}</option>`;
+            }
         });
     }
     select.innerHTML = options;
@@ -33,8 +35,8 @@ db.ref('collections/').on('value', (snap) => {
 });
 
 function renderSongs(data, selected) {
-    const list = document.getElementById('playlist');
-    list.innerHTML = "";
+    const container = document.getElementById('playlist-container');
+    container.innerHTML = "";
     currentQueue = [];
     if (!data) return;
 
@@ -45,68 +47,70 @@ function renderSongs(data, selected) {
             if (id === "_init") continue;
             currentQueue.push({ ...songs[id], pName, id });
             let idx = currentQueue.length - 1;
-            list.innerHTML += `
+            
+            container.innerHTML += `
                 <div style="background:#181818; padding:15px; margin-bottom:10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border-left:4px solid #1db954;">
                     <div onclick="playSong(${idx})" style="cursor:pointer; flex:1;">
-                        <b>${songs[id].name}</b><br><small style="color:#888;">${pName}</small>
+                        <b style="color:#fff;">${songs[id].name}</b><br>
+                        <small style="color:#666;">${pName}</small>
                     </div>
-                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:20px; cursor:pointer;">🗑️</button>
+                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:#ff4444; font-size:18px; cursor:pointer; padding:5px;">🗑️</button>
                 </div>`;
         }
     }
 }
 
-// 2. Play & Auto-Next Logic
+// 2. Play & Autoplay Logic
+const audio = document.getElementById('mainAudio');
+
 function playSong(idx) {
     if (idx < 0 || idx >= currentQueue.length) return;
     currentSongIndex = idx;
     const song = currentQueue[idx];
-    const audio = document.getElementById('mainAudio');
     const status = document.getElementById('playing-now');
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
-        status.innerText = "▶ Playing: " + song.name;
-        // The most reliable bypass link for 2026
-        const streamUrl = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
-        audio.src = streamUrl;
-        audio.load();
-        audio.play().catch(e => {
-            status.innerText = "❌ Playback Blocked. Please click play button.";
+        status.innerText = "⏳ Loading: " + song.name;
+        // Method: Direct Stream Bypass
+        const directUrl = `https://docs.google.com/uc?export=open&id=${fileId[0]}`;
+        
+        audio.src = directUrl;
+        audio.play().then(() => {
+            status.innerText = "▶ Playing: " + song.name;
+        }).catch(() => {
+            status.innerText = "❌ Click Play to Start";
         });
     }
 }
 
+// Auto-Next Logic
+audio.onended = () => {
+    playNextSong();
+};
+
 function playNextSong() {
     let next = currentSongIndex + 1;
     if (next < currentQueue.length) playSong(next);
-    else document.getElementById('playing-now').innerText = "Playlist Ended";
-}
-
-function handleAudioError() {
-    document.getElementById('playing-now').innerText = "❌ Error: Google Drive Blocked this song.";
 }
 
 // 3. Management
-function deleteSong(p, id) {
-    if (confirm("Delete this song?")) db.ref(`collections/${p}/${id}`).remove();
-}
-
 function addSong() {
-    const n = document.getElementById('songName').value;
-    const u = document.getElementById('songUrl').value;
-    const p = document.getElementById('playlistSelect').value === "ALL_SONGS" ? "Default" : document.getElementById('playlistSelect').value;
-    if (n && u) {
-        db.ref(`collections/${p}`).push({ name: n, url: u });
-        document.getElementById('songName').value = "";
-        document.getElementById('songUrl').value = "";
+    const name = document.getElementById('songName').value;
+    const url = document.getElementById('songUrl').value;
+    const target = document.getElementById('playlistSelect').value;
+    const pName = (target === "ALL_SONGS") ? "Default" : target;
+
+    if (name && url) {
+        db.ref(`collections/${pName}`).push({ name, url }).then(() => {
+            document.getElementById('songName').value = "";
+            document.getElementById('songUrl').value = "";
+        });
     }
 }
 
-function deleteFullPlaylist() {
-    const p = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(p)) return alert("Reserved!");
-    if (confirm(`Delete ${p}?`)) db.ref(`collections/${p}`).remove();
+function deleteSong(p, id) {
+    if (confirm("Delete this song?")) db.ref(`collections/${p}/${id}`).remove();
 }
 
 function onPlaylistChange() {
