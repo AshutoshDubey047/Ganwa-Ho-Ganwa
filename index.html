@@ -3,64 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Pro | 2026</title>
+    <title>Ganwa Player Pro Max | 2026</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
         :root { --spotify-green: #1db954; --bg-black: #000; --card-bg: #121212; }
-        body { background: var(--bg-black); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding-bottom: 220px; overflow-x: hidden; }
-        .container { max-width: 600px; margin: auto; padding: 20px; }
-        .header { text-align: center; color: var(--spotify-green); padding: 20px 0; text-transform: uppercase; letter-spacing: 2px; }
-        .card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #282828; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        select, input { width: 100%; padding: 12px; margin: 8px 0; background: #282828; color: white; border: none; border-radius: 6px; box-sizing: border-box; }
-        .btn-green { background: var(--spotify-green); color: black; font-weight: bold; width: 100%; padding: 14px; border: none; border-radius: 30px; cursor: pointer; transition: 0.3s; }
-        .btn-green:hover { transform: scale(1.02); background: #1ed760; }
+        body { background: var(--bg-black); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding-bottom: 220px; }
         
-        /* SONG LIST UI */
-        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin: 10px 0; border-radius: 8px; transition: 0.3s; }
-        .song-item:hover { background: #282828; }
+        .container { max-width: 500px; margin: auto; padding: 15px; }
+        .header { text-align: center; padding: 20px 0; color: var(--spotify-green); }
+        
+        /* Input & Dropdown Styling */
+        .admin-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #282828; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #282828; color: white; border: none; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .add-btn { background: var(--spotify-green); color: black; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s; }
+        .add-btn:hover { transform: scale(1.02); }
+
+        /* Song List Styling */
+        .song-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #181818; padding: 15px; margin-bottom: 12px; 
+            border-radius: 10px; border-left: 5px solid var(--spotify-green);
+            transition: 0.3s;
+        }
         .song-info { flex: 1; cursor: pointer; }
         .song-info b { font-size: 16px; display: block; margin-bottom: 4px; }
         .song-info small { color: var(--spotify-green); font-size: 12px; }
-        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; margin-left: 10px; }
 
-        /* PLAYER FOOTER */
-        footer { position: fixed; bottom: 0; width: 100%; background: rgba(18,18,18,0.98); border-top: 2px solid var(--spotify-green); padding: 15px; box-sizing: border-box; text-align: center; }
-        #status-text { color: var(--spotify-green); font-size: 14px; margin-bottom: 10px; display: block; font-weight: 600; }
-        #player-frame { width: 100%; height: 80px; background: #000; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
-        .next-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .next-btn { background: var(--spotify-green); color: black; border: none; padding: 6px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        /* Delete Button Red */
+        .del-btn { 
+            background: #ff4444; color: white; border: none; 
+            padding: 8px 15px; border-radius: 6px; font-weight: bold; 
+            cursor: pointer; font-size: 12px; margin-left: 10px;
+        }
+
+        /* Fixed Footer Player */
+        footer { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: rgba(8, 8, 8, 0.98); border-top: 2px solid var(--spotify-green); 
+            padding: 15px; box-sizing: border-box; text-align: center; z-index: 999;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+        }
+        #now-playing { color: var(--spotify-green); font-weight: bold; margin-bottom: 10px; font-size: 14px; display: block; }
+        #player-frame { background: #000; border-radius: 10px; overflow: hidden; height: 80px; border: 1px solid #333; }
+        .next-btn { background: none; border: 1px solid var(--spotify-green); color: white; padding: 6px 25px; border-radius: 20px; cursor: pointer; margin-top: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header"><h1>Ganwa Player</h1></div>
+    <div class="header"><h1>🎶 Ganwa Player Pro</h1></div>
 
-    <div class="card">
-        <label style="font-size: 12px; color: #888;">CHOOSE PLAYLIST</label>
-        <select id="playlistSelect" onchange="loadSongs()"></select>
+    <div class="admin-card">
+        <label style="font-size: 11px; color: #888;">CHOOSE PLAYLIST</label>
+        <select id="playlistSelect" onchange="renderSongs()">
+            <option value="ALL">✨ All Playlists</option>
+        </select>
     </div>
 
-    <div class="card">
-        <input type="text" id="songName" placeholder="Song Name">
-        <input type="text" id="songUrl" placeholder="Google Drive Link">
-        <button class="btn-green" onclick="addSong()">➕ ADD TO PLAYLIST</button>
+    <div class="admin-card">
+        <input type="text" id="songName" placeholder="Enter Song Name...">
+        <input type="text" id="songUrl" placeholder="Paste Google Drive Link...">
+        <button class="add-btn" onclick="addSong()">➕ ADD TO CLOUD</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <div class="next-bar">
-        <span id="status-text">Waiting for play...</span>
-        <button class="next-btn" onclick="playNext()">NEXT ⏭️</button>
-    </div>
+    <span id="now-playing">Tap a song to play...</span>
     <div id="player-frame">
-        <div style="line-height: 80px; color: #444;">Ready</div>
+        <div style="padding-top:30px; color:#444; font-size: 12px;">Iframe Player Ready</div>
     </div>
+    <button class="next-btn" onclick="playNext()">NEXT SONG ⏭️</button>
 </footer>
 
-<script src="script.js"></script>
+<script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
+        authDomain: "ganwaplayer.firebaseapp.com",
+        databaseURL: "https://ganwaplayer-default-rtdb.firebaseio.com",
+        projectId: "ganwaplayer",
+        storageBucket: "ganwaplayer.firebasestorage.app",
+        messagingSenderId: "28027251724",
+        appId: "1:28027251724:web:792638e52fd8d842671229"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentQueue = [];
+    let currentIndex = -1;
+    let masterData = {};
+
+    // 2. Fetch Data (Real-time)
+    db.ref('collections').on('value', (snap) => {
+        masterData = snap.val();
+        if(!masterData) return;
+
+        // Update Dropdown
+        const select = document.getElementById('playlistSelect');
+        const activeVal = select.value || "ALL";
+        let options = '<option value="ALL">✨ All Playlists</option>';
+        Object.keys(masterData).forEach(p => { 
+            if(p !== "_init") options += `<option value="${p}">${p}</option>`; 
+        });
+        select.innerHTML = options;
+        select.value = activeVal;
+
+        renderSongs();
+    });
+
+    // 3. Render Song List
+    function renderSongs() {
+        const selectedPlaylist = document.getElementById('playlistSelect').value;
+        const listDiv = document.getElementById('songsList');
+        listDiv.innerHTML = "";
+        currentQueue = [];
+
+        for (let pName in masterData) {
+            if (selectedPlaylist !== "ALL" && pName !== selectedPlaylist) continue;
+            
+            const songs = masterData[pName];
+            for (let sId in songs) {
+                if (sId === "_init") continue;
+                
+                currentQueue.push({ ...songs[sId], pName, sId });
+                let currentIdx = currentQueue.length - 1;
+
+                listDiv.innerHTML += `
+                    <div class="song-item">
+                        <div class="song-info" onclick="playSong(${currentIdx})">
+                            <b>${songs[sId].name}</b>
+                            <small>${pName}</small>
+                        </div>
+                        <button class="del-btn" onclick="deleteSong3X('${pName}','${sId}','${songs[sId].name}')">DEL</button>
+                    </div>`;
+            }
+        }
+    }
+
+    // 4. Play Function (Google Drive Fix)
+    function playSong(idx) {
+        if(idx < 0 || idx >= currentQueue.length) return;
+        currentIndex = idx;
+        const song = currentQueue[idx];
+        const fileIdMatch = song.url.match(/[-\w]{25,}/);
+
+        if (fileIdMatch) {
+            document.getElementById('now-playing').innerText = "▶ " + song.name;
+            // Using PREVIEW mode (Always plays audio)
+            document.getElementById('player-frame').innerHTML = 
+                `<iframe src="https://drive.google.com/file/d/${fileIdMatch[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
+        } else {
+            alert("Error: Incomplete Drive Link!");
+        }
+    }
+
+    function playNext() {
+        let next = currentIndex + 1;
+        if(next < currentQueue.length) playSong(next);
+        else alert("End of playlist!");
+    }
+
+    // 5. 3-TIMES DELETE LOGIC
+    function deleteSong3X(pName, sId, sName) {
+        const c1 = confirm("⚠️ STEP 1: Delete '" + sName + "'?");
+        if(c1) {
+            const c2 = confirm("🛑 STEP 2: Pakka? Yeh data hamesha ke liye hat jayega.");
+            if(c2) {
+                const c3 = confirm("❗ FINAL STEP: Confirm delete?");
+                if(c3) {
+                    db.ref(`collections/${pName}/${sId}`).remove();
+                }
+            }
+        }
+    }
+
+    // 6. Add Song
+    function addSong() {
+        const name = document.getElementById('songName').value;
+        const url = document.getElementById('songUrl').value;
+        const playlist = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
+        
+        if(name && url) {
+            db.ref(`collections/${playlist}`).push({ name: name, url: url });
+            document.getElementById('songName').value = "";
+            document.getElementById('songUrl').value = "";
+        } else {
+            alert("Please enter both Name and Link!");
+        }
+    }
+</script>
+
 </body>
 </html>
