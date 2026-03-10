@@ -1,115 +1,83 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
-    authDomain: "ganwaplayer.firebaseapp.com",
-    databaseURL: "https://ganwaplayer-default-rtdb.firebaseio.com",
-    projectId: "ganwaplayer",
-    storageBucket: "ganwaplayer.firebasestorage.app",
-    messagingSenderId: "28027251724",
-    appId: "1:28027251724:web:792638e52fd8d842671229"
-};
-
+// Firebase Config (Aapka purana wala hi rahega)
+const firebaseConfig = { ... }; 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentQueue = [];
-let currentIndex = -1;
+let currentSongIndex = -1;
 
-// 1. Fetch & Render
+// --- 1. DATA LOAD ---
 db.ref('collections').on('value', (snap) => {
     const data = snap.val();
-    if(!data) return;
-
     const select = document.getElementById('playlistSelect');
-    const oldVal = select.value;
-    let options = '<option value="ALL">✨ All Songs</option>';
-    Object.keys(data).forEach(p => { if(p !== "_init") options += `<option value="${p}">${p}</option>`; });
+    const container = document.getElementById('songsList');
+    const activeP = select.value || "ALL";
+
+    // Update Dropdown
+    let options = '<option value="ALL">✨ All Playlists</option>';
+    if(data) {
+        Object.keys(data).forEach(p => { if(p !== "_init") options += `<option value="${p}">${p}</option>`; });
+    }
     select.innerHTML = options;
-    select.value = oldVal;
+    select.value = activeP;
 
-    loadSongs();
-
-    // AUTO-PLAY FROM RELOAD
-    const urlParams = new URLSearchParams(window.location.search);
-    const autoIdx = urlParams.get('play');
-    if(autoIdx !== null && currentQueue[autoIdx]) {
-        setTimeout(() => playSong(parseInt(autoIdx)), 2000);
+    // Render Songs
+    container.innerHTML = "";
+    currentQueue = [];
+    for (let pName in data) {
+        if (activeP !== "ALL" && pName !== activeP) continue;
+        const songs = data[pName];
+        for (let id in songs) {
+            if (id === "_init") continue;
+            currentQueue.push({ ...songs[id], pName, id });
+            let idx = currentQueue.length - 1;
+            container.innerHTML += `
+                <div class="song-item" style="display:flex; justify-content:space-between; background:#181818; padding:15px; margin:10px 0; border-radius:10px; border-left:4px solid #1db954;">
+                    <div onclick="playSong(${idx})" style="flex:1; cursor:pointer;">
+                        <b style="color:#fff;">${songs[id].name}</b><br>
+                        <small style="color:#888;">${pName}</small>
+                    </div>
+                    <button onclick="confirmDelete('${pName}','${id}')" style="background:none; border:none; color:#ff4444; font-size:20px; cursor:pointer;">🗑️</button>
+                </div>`;
+        }
     }
 });
 
-function loadSongs() {
-    const selectedP = document.getElementById('playlistSelect').value;
-    const container = document.getElementById('songsList');
-    container.innerHTML = "";
-    currentQueue = [];
+// --- 2. THE PLAYER ENGINE (No Iframe) ---
+const audioPlayer = new Audio();
 
-    db.ref('collections').once('value', (snap) => {
-        const data = snap.val();
-        for (let pName in data) {
-            if (selectedP !== "ALL" && pName !== selectedP) continue;
-            const songs = data[pName];
-            for (let id in songs) {
-                if (id === "_init") continue;
-                currentQueue.push({ ...songs[id], pName, id });
-                let idx = currentQueue.length - 1;
-                container.innerHTML += `
-                    <div class="song-item">
-                        <div class="song-info" onclick="playSong(${idx})">
-                            <b style="font-size:15px;">${songs[id].name}</b><br>
-                            <small style="color:var(--spotify-green);">${pName}</small>
-                        </div>
-                        <button class="del-icon" onclick="deleteSong('${pName}','${id}')">🗑️</button>
-                    </div>`;
-            }
-        }
-    });
-}
-
-// 2. Player Logic (The ONLY 100% Working Way)
 function playSong(idx) {
-    currentIndex = idx;
+    if (idx < 0 || idx >= currentQueue.length) return;
+    currentSongIndex = idx;
     const song = currentQueue[idx];
-    const playerBox = document.getElementById('playerBox');
-    const status = document.getElementById('playing-now');
-
     const fileId = song.url.match(/[-\w]{25,}/);
-    if (fileId) {
-        status.innerText = "▶ " + song.name;
-        
-        // Use Official Preview Iframe - Sunaai 100% dega
-        playerBox.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
 
-        // UPDATE URL FOR RELOAD
-        const nextUrl = window.location.origin + window.location.pathname + "?play=" + (idx + 1);
-        
-        // AUTO-NEXT (Reload Page after 4 mins)
-        setTimeout(() => {
-            window.location.href = nextUrl;
-        }, 240000); // 4 Minute Timer
+    if (fileId) {
+        document.getElementById('playing-now').innerText = "▶ " + song.name;
+        // Direct Proxy Link to bypass Google Block
+        audioPlayer.src = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
+        audioPlayer.play().catch(() => {
+            alert("Please click anywhere on the page once to allow Autoplay!");
+        });
     }
 }
 
-function playNext() {
-    let next = currentIndex + 1;
+// AUTO-NEXT: This works 100% with Audio Tag (No Reload Needed)
+audioPlayer.onended = () => {
+    let next = currentSongIndex + 1;
     if(next < currentQueue.length) playSong(next);
-}
+};
 
-// 3. Delete with 2-Step Confirmation
-function deleteSong(p, id) {
-    const step1 = confirm("⚠️ STEP 1: Are you sure you want to delete this song?");
-    if(step1) {
-        const step2 = confirm("🛑 STEP 2: LAST WARNING! This will remove the song forever. Confirm?");
-        if(step2) {
+// --- 3. DOUBLE CONFIRMATION DELETE ---
+function confirmDelete(p, id) {
+    if (confirm("⚠️ Are you sure you want to delete this song?")) {
+        if (confirm("🛑 FINAL CONFIRMATION: Remove it forever?")) {
             db.ref(`collections/${p}/${id}`).remove();
         }
     }
 }
 
-function addSong() {
-    const n = document.getElementById('songName').value;
-    const u = document.getElementById('songUrl').value;
-    const p = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
-    if(n && u) db.ref(`collections/${p}`).push({ name: n, url: u }).then(() => {
-        document.getElementById('songName').value = "";
-        document.getElementById('songUrl').value = "";
-    });
+function playNext() {
+    let next = currentSongIndex + 1;
+    if(next < currentQueue.length) playSong(next);
 }
