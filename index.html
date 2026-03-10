@@ -13,19 +13,22 @@
         <h1>🎶 Ganwa-Ho-Ganwa Pro</h1>
 
         <div class="input-card">
-            <h3>📁 Switch/Create Playlist</h3>
+            <h3>📁 Manage Playlists</h3>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="newPlaylistName" placeholder="Playlist Name (e.g. Party, Old)">
+                <input type="text" id="newPlaylistName" placeholder="Playlist Name...">
                 <button onclick="switchPlaylist()">Switch</button>
             </div>
-            <p>Current: <b id="currentPName">Default</b></p>
+            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <p>Current: <b id="currentPName" style="color:#1db954;">Default</b></p>
+                <button onclick="deleteFullPlaylist()" style="background:#ff4444; font-size:12px;">🗑️ Delete This Playlist</button>
+            </div>
         </div>
 
         <div class="input-card">
             <h3>➕ Add Song</h3>
             <input type="text" id="songName" placeholder="Song Name">
             <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <button onclick="addSong()" style="background:#1db954; width:100%; margin-top:10px;">Add to Playlist</button>
+            <button onclick="addSong()" style="background:#1db954; width:100%; margin-top:10px;">Add to List</button>
         </div>
 
         <div class="playlist-section">
@@ -33,12 +36,10 @@
         </div>
 
         <div class="player-footer">
-            <p id="playing-now">Select a song to play</p>
-            <div id="drive-player-wrapper">
-                </div>
+            <p id="playing-now">Select a song</p>
+            <div id="drive-player-wrapper"></div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
