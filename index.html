@@ -3,49 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Fix</title>
+    <title>Ganwa Player Pro | 2026</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: #121212; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
-        select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
-        .btn-green { background: #1db954; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
+        :root { --spotify-green: #1db954; --bg-black: #000; --card-bg: #121212; }
+        body { background: var(--bg-black); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding-bottom: 220px; overflow-x: hidden; }
+        .container { max-width: 600px; margin: auto; padding: 20px; }
+        .header { text-align: center; color: var(--spotify-green); padding: 20px 0; text-transform: uppercase; letter-spacing: 2px; }
+        .card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #282828; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        select, input { width: 100%; padding: 12px; margin: 8px 0; background: #282828; color: white; border: none; border-radius: 6px; box-sizing: border-box; }
+        .btn-green { background: var(--spotify-green); color: black; font-weight: bold; width: 100%; padding: 14px; border: none; border-radius: 30px; cursor: pointer; transition: 0.3s; }
+        .btn-green:hover { transform: scale(1.02); background: #1ed760; }
         
-        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #1db954; }
+        /* SONG LIST UI */
+        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin: 10px 0; border-radius: 8px; transition: 0.3s; }
+        .song-item:hover { background: #282828; }
         .song-info { flex: 1; cursor: pointer; }
-        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-left: 10px; }
+        .song-info b { font-size: 16px; display: block; margin-bottom: 4px; }
+        .song-info small { color: var(--spotify-green); font-size: 12px; }
+        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; margin-left: 10px; }
 
-        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid #1db954; padding: 15px; box-sizing: border-box; text-align: center; }
-        #status { color: #1db954; font-weight: bold; font-size: 14px; margin-bottom: 8px; display: block; }
-        #player { background: #000; border-radius: 10px; height: 80px; border: 1px solid #333; overflow: hidden; }
+        /* PLAYER FOOTER */
+        footer { position: fixed; bottom: 0; width: 100%; background: rgba(18,18,18,0.98); border-top: 2px solid var(--spotify-green); padding: 15px; box-sizing: border-box; text-align: center; }
+        #status-text { color: var(--spotify-green); font-size: 14px; margin-bottom: 10px; display: block; font-weight: 600; }
+        #player-frame { width: 100%; height: 80px; background: #000; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
+        .next-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .next-btn { background: var(--spotify-green); color: black; border: none; padding: 6px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color: #1db954; text-align: center;">🎶 Ganwa Player</h1>
+    <div class="header"><h1>Ganwa Player</h1></div>
 
     <div class="card">
-        <select id="playlistSelect" onchange="renderSongs()"><option value="ALL">✨ All Playlists</option></select>
+        <label style="font-size: 12px; color: #888;">CHOOSE PLAYLIST</label>
+        <select id="playlistSelect" onchange="loadSongs()"></select>
     </div>
 
     <div class="card">
         <input type="text" id="songName" placeholder="Song Name">
         <input type="text" id="songUrl" placeholder="Google Drive Link">
-        <button class="btn-green" onclick="addSong()">➕ ADD SONG</button>
+        <button class="btn-green" onclick="addSong()">➕ ADD TO PLAYLIST</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <span id="status">Select a track</span>
-    <div id="player">
-        <div style="padding-top:30px; color:#444;">Click a song to play</div>
+    <div class="next-bar">
+        <span id="status-text">Waiting for play...</span>
+        <button class="next-btn" onclick="playNext()">NEXT ⏭️</button>
     </div>
-    <button onclick="playNext()" style="background:none; border:1px solid #1db954; color:white; padding:5px 20px; border-radius:20px; cursor:pointer; margin-top:10px;">NEXT ⏭️</button>
+    <div id="player-frame">
+        <div style="line-height: 80px; color: #444;">Ready</div>
+    </div>
 </footer>
 
 <script src="script.js"></script>
