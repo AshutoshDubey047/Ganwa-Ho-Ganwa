@@ -11,73 +11,80 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
-let currentView = "ALL_SONGS";
-
-// 1. CREATE NEW PLAYLIST (Doesn't delete old ones)
-function createNewPlaylist() {
-    let name = document.getElementById('newPlaylistName').value.trim();
-    if (name) {
-        // Just add to dropdown
-        const select = document.getElementById('playlistSelect');
-        const option = document.createElement('option');
-        option.value = name;
-        option.text = name;
-        select.add(option);
-        select.value = name;
-        changePlaylistView();
-        document.getElementById('newPlaylistName').value = "";
+// 1. AUTO-LOAD PLAYLIST NAMES IN DROPDOWN
+db.ref('collections/').on('value', (snap) => {
+    const select = document.getElementById('playlistSelect');
+    const currentVal = select.value;
+    const data = snap.val();
+    
+    // Clear dropdown but keep "All Songs"
+    select.innerHTML = '<option value="ALL_SONGS">✨ All Songs (Everything)</option>';
+    
+    if (data) {
+        Object.keys(data).forEach(pName => {
+            const option = document.createElement('option');
+            option.value = pName;
+            option.text = pName;
+            select.add(option);
+        });
     }
-}
+    select.value = currentVal; // Wapas wahi select rakho jo pehle tha
+});
 
-// 2. SWITCH VIEW LOGIC
-function changePlaylistView() {
-    currentView = document.getElementById('playlistSelect').value;
-    document.getElementById('currentPName').innerText = (currentView === "ALL_SONGS") ? "All Songs" : currentView;
-    document.getElementById('targetPName').innerText = (currentView === "ALL_SONGS") ? "Default" : currentView;
-    loadSongs();
+// 2. CREATE NEW PLAYLIST (Permanent in Firebase)
+function createNewPlaylist() {
+    let name = document.getElementById('newPlaylistInput').value.trim();
+    if (name) {
+        // Firebase mein ek placeholder daalna padta hai taki folder ban jaye
+        db.ref('collections/' + name).update({ _created: true });
+        document.getElementById('newPlaylistInput').value = "";
+        alert("Playlist '" + name + "' Created!");
+    }
 }
 
 // 3. ADD SONG
 function addSong() {
     const name = document.getElementById('songName').value;
     const url = document.getElementById('songUrl').value;
-    // Agar "All Songs" par ho toh Default mein save karo, warna current playlist mein
-    let target = (currentView === "ALL_SONGS") ? "Default" : currentView;
+    const selectedP = document.getElementById('playlistSelect').value;
+    
+    // Agar "All Songs" par ho toh Default mein dalo, warna selected playlist mein
+    let target = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
 
     if (name && url) {
-        db.ref('collections/' + target).push({ name, url, playlistName: target });
+        db.ref('collections/' + target).push({ name, url });
         document.getElementById('songName').value = "";
         document.getElementById('songUrl').value = "";
-        alert("Saved to " + target);
+        alert("Song added to " + target);
     }
 }
 
-// 4. LOAD SONGS (The Master Fetch)
+// 4. LOAD SONGS (Filtered or All)
 function loadSongs() {
-    const list = document.getElementById('playlist');
-    db.ref('collections/').off(); // Clear old listeners
-
+    const selectedP = document.getElementById('playlistSelect').value;
+    document.getElementById('targetDisplayName').innerText = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
+    
     db.ref('collections/').on('value', (snap) => {
         const allData = snap.val();
+        const list = document.getElementById('playlist');
         list.innerHTML = "";
         
-        if (!allData) {
-            list.innerHTML = "<p style='text-align:center;'>Empty Database.</p>";
-            return;
-        }
+        if (!allData) return;
 
         for (let pName in allData) {
-            // Agar specific playlist dekhni hai toh baaki skip karo
-            if (currentView !== "ALL_SONGS" && pName !== currentView) continue;
+            // Filter logic
+            if (selectedP !== "ALL_SONGS" && pName !== selectedP) continue;
 
             const songs = allData[pName];
             for (let id in songs) {
+                if (id === "_created") continue; // Skip placeholder
+                
                 const song = songs[id];
                 list.innerHTML += `
-                    <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:8px 0; padding:12px; border-radius:10px; border-left:4px solid ${pName === 'Default' ? '#1db954' : '#fb8c00'};">
+                    <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:8px 0; padding:12px; border-radius:10px; border-left:4px solid #1db954;">
                         <div>
                             <b>${song.name}</b> <br>
-                            <small style="color:#666;">Playlist: ${pName}</small>
+                            <small style="color:#666;">In: ${pName}</small>
                         </div>
                         <div>
                             <button onclick="playSong('${song.url}', '${song.name}')" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
@@ -89,14 +96,11 @@ function loadSongs() {
     });
 }
 
-// 5. DELETE LOGIC
+// 5. DELETE & PLAY
 function deleteSong(pName, sId) {
-    if(confirm("Delete this song?")) {
-        db.ref(`collections/${pName}/${sId}`).remove();
-    }
+    if(confirm("Delete this song?")) { db.ref(`collections/${pName}/${sId}`).remove(); }
 }
 
-// 6. PLAYER
 function playSong(rawUrl, name) {
     const wrapper = document.getElementById('drive-player-wrapper');
     const title = document.getElementById('playing-now');
@@ -107,5 +111,5 @@ function playSong(rawUrl, name) {
     }
 }
 
-// Initial start
+// Initial Run
 loadSongs();
