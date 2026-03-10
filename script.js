@@ -1,6 +1,3 @@
-// ==========================================
-// 1. FIREBASE CONFIGURATION (Aapka Project)
-// ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
   authDomain: "ganwaplayer.firebaseapp.com",
@@ -11,123 +8,94 @@ const firebaseConfig = {
   appId: "1:28027251724:web:792638e52fd8d842671229"
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-// ==========================================
-// 2. ADD SONG FUNCTION
-// ==========================================
+// --- 1. LOGIN / LOGOUT LOGIC ---
+function googleLogin() {
+    auth.signInWithPopup(provider).catch(alert);
+}
+
+function googleLogout() {
+    auth.signOut();
+}
+
+// User State Check (Auto-run)
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('user-info').style.display = 'block';
+        document.getElementById('upload-card').style.display = 'block';
+        document.getElementById('userName').innerText = user.displayName;
+    } else {
+        document.getElementById('loginBtn').style.display = 'block';
+        document.getElementById('user-info').style.display = 'none';
+        document.getElementById('upload-card').style.display = 'none';
+    }
+});
+
+// --- 2. DATABASE LOGIC ---
 function addSong() {
+    const user = auth.currentUser;
     const name = document.getElementById('songName').value;
     const url = document.getElementById('songUrl').value;
-    const user = document.getElementById('userTag').value;
 
-    if (name && url) {
-        // Firebase mein data bhej raha hai
+    if (user && name && url) {
         db.ref('smart_playlist/').push({
             name: name,
             url: url,
-            user: user
-        }).then(() => {
-            // Input boxes khali karna
-            document.getElementById('songName').value = "";
-            document.getElementById('songUrl').value = "";
-            alert("Gaana List mein add ho gaya!");
-        }).catch((error) => {
-            alert("Firebase Error: " + error.message);
+            userId: user.uid,
+            userName: user.displayName
         });
+        document.getElementById('songName').value = "";
+        document.getElementById('songUrl').value = "";
+    }
+}
+
+function deleteSong(id, ownerId) {
+    const user = auth.currentUser;
+    if (user && user.uid === ownerId) {
+        if (confirm("Delete this song?")) db.ref('smart_playlist/' + id).remove();
     } else {
-        alert("Bhai, Naam aur Drive Link dono daalo!");
+        alert("Bhai, sirf wahi delete kar sakta hai jisne upload kiya ho!");
     }
 }
 
-// ==========================================
-// 3. DELETE SONG FUNCTION
-// ==========================================
-function deleteSong(id) {
-    if(confirm("Kya aap is gaane ko hamesha ke liye hatana chahte hain?")) {
-        db.ref('smart_playlist/' + id).remove()
-        .then(() => {
-            console.log("Deleted successfully");
-        })
-        .catch((error) => {
-            alert("Delete fail: " + error.message);
-        });
-    }
-}
-
-// ==========================================
-// 4. LIVE PLAYLIST LISTENER (Real-time update)
-// ==========================================
+// --- 3. UI & PLAY LOGIC ---
 db.ref('smart_playlist/').on('value', (snap) => {
     const data = snap.val();
     const list = document.getElementById('playlist');
     list.innerHTML = "";
-    
-    if (!data) {
-        list.innerHTML = "<p style='text-align:center; color:#888;'>Playlist khali hai. Pehla gaana aap add karein!</p>";
-        return;
-    }
-
-    // Har gaane ke liye list item banana
     for (let id in data) {
         const song = data[id];
-        const li = document.createElement('li');
-        li.className = "song-item";
-        li.style = "display:flex; justify-content:space-between; align-items:center; background:#181818; margin:10px; padding:15px; border-radius:10px; border-left: 5px solid #1db954;";
-        
-        li.innerHTML = `
-            <div class="song-info">
-                <b style="color:#1db954; font-size:1.1rem;">${song.name}</b> <br>
-                <small style="color:#aaa;">By: ${song.user}</small>
-            </div>
-            <div class="actions">
-                <button onclick="playNow('${song.url}', '${song.name}')" style="background:#1db954; color:black; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">▶ Play</button>
-                <button onclick="deleteSong('${id}')" style="background:#ff4444; color:white; border:none; padding:8px 10px; border-radius:20px; cursor:pointer; margin-left:10px;">🗑️</button>
-            </div>
-        `;
-        list.appendChild(li);
+        list.innerHTML += `
+            <li class="song-item" style="display:flex; justify-content:space-between; background:#181818; padding:10px; margin:5px; border-radius:8px;">
+                <span><b>${song.name}</b><br><small>By: ${song.userName}</small></span>
+                <div>
+                    <button onclick="playNow('${song.url}', '${song.name}')">▶</button>
+                    ${auth.currentUser && auth.currentUser.uid === song.userId ? `<button onclick="deleteSong('${id}', '${song.userId}')" style="background:red;">🗑️</button>` : ''}
+                </div>
+            </li>`;
     }
 });
 
-// ==========================================
-// 5. SMART PLAY LOGIC (Bypass & Fix)
-// ==========================================
 function playNow(rawUrl, name) {
     const player = document.getElementById('main-player');
     const title = document.getElementById('playing-now');
-    
-    // Google Drive ID extract karne ka logic
     const match = rawUrl.match(/[-\w]{25,}/);
     
     if (match) {
         const fileId = match[0];
-        
-        // Google Drive Direct Stream URL (Bypass method)
-        const streamUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
-        
-        player.pause();
-        player.src = streamUrl;
-        player.load();
-        
-        title.innerText = "Connecting to Drive... " + name;
-
-        // Play karne ki koshish
+        // Direct stream URL
+        player.src = `https://docs.google.com/uc?export=download&id=${fileId}`;
         player.play().then(() => {
             title.innerText = "Playing: " + name;
-        }).catch(err => {
-            console.warn("Method 1 failed, trying Preview Mode...");
-            // Agar pehla tarika fail ho, toh ye backup try karega
+        }).catch(() => {
+            // Backup link
             player.src = `https://drive.google.com/uc?id=${fileId}`;
-            player.play().catch(e => {
-                title.innerText = "⚠️ Permission Denied by Google";
-                alert("Google ne is gaane ko block kiya hai. Drive mein 'Anyone with link' and 'Allow Download' check karein.");
-            });
+            player.play().catch(() => alert("Google block! Make sure file is public."));
         });
-    } else {
-        alert("Bhai, ye Google Drive ka link nahi lag raha. Check karein!");
     }
 }
