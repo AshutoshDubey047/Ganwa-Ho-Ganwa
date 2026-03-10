@@ -10,31 +10,35 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎶 Ganwa-Ho-Ganwa</h1>
+        <h1>🎶 Ganwa-Ho-Ganwa Pro</h1>
 
         <div class="input-card">
-            <h3>Create/Switch Playlist</h3>
-            <input type="text" id="newPlaylistName" placeholder="Playlist ka naam (e.g. Party, Sad)...">
-            <button onclick="switchPlaylist()">Switch/Create</button>
-            <p>Current Playlist: <b id="currentPName">Default</b></p>
-        </div>
-
-        <div class="input-card">
-            <h3>Add Song to <span id="targetPName">Default</span></h3>
-            <input type="text" id="songName" placeholder="Gaane ka naam...">
-            <input type="text" id="songUrl" placeholder="Google Drive Link...">
-            <button onclick="addSong()" style="background: #1db954;">Add Song</button>
-        </div>
-
-        <ul id="playlistDisplay"></ul>
-
-        <div id="player-container" class="player">
-            <p id="playing-now">Select a song</p>
-            <div id="drive-frame-wrapper">
-                <p style="font-size: 12px; color: #888;">Note: Click the play icon on the player below</p>
+            <h3>📁 Switch/Create Playlist</h3>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="newPlaylistName" placeholder="Playlist Name (e.g. Party, Old)">
+                <button onclick="switchPlaylist()">Switch</button>
             </div>
+            <p>Current: <b id="currentPName">Default</b></p>
+        </div>
+
+        <div class="input-card">
+            <h3>➕ Add Song</h3>
+            <input type="text" id="songName" placeholder="Song Name">
+            <input type="text" id="songUrl" placeholder="Google Drive Link">
+            <button onclick="addSong()" style="background:#1db954; width:100%; margin-top:10px;">Add to Playlist</button>
+        </div>
+
+        <div class="playlist-section">
+            <ul id="playlist"></ul>
+        </div>
+
+        <div class="player-footer">
+            <p id="playing-now">Select a song to play</p>
+            <div id="drive-player-wrapper">
+                </div>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
