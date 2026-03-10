@@ -1,3 +1,4 @@
+// 1. Firebase Configuration (Aapka Project)
 const firebaseConfig = {
   apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
   authDomain: "ganwaplayer.firebaseapp.com",
@@ -12,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 1. ADD SONG
+// 2. Add Song Function (Saves to Firebase)
 function addSong() {
     const name = document.getElementById('songName').value;
     const url = document.getElementById('songUrl').value;
@@ -26,80 +27,115 @@ function addSong() {
         });
         document.getElementById('songName').value = "";
         document.getElementById('songUrl').value = "";
-        alert("Gaana add ho gaya!");
+        alert("Gaana List mein add ho gaya!");
+    } else {
+        alert("Bhai, Naam aur Link dono bharo!");
     }
 }
 
-// 2. DELETE SONG
+// 3. Delete Song Function
 function deleteSong(id) {
-    if(confirm("Kya aap ye gaana delete karna chahte hain?")) {
+    if(confirm("Kya aap ye gaana sach mein delete karna chahte hain?")) {
         db.ref('smart_playlist/' + id).remove()
-        .then(() => alert("Deleted!"))
-        .catch((e) => alert("Error: " + e.message));
+        .then(() => {
+            console.log("Deleted successfully");
+        })
+        .catch((error) => {
+            alert("Delete nahi ho paya: " + error.message);
+        });
     }
 }
 
-// 3. LIVE LISTENER & DISPLAY
+// 4. Live Playlist Loader (Updates automatically for all users)
 let allSongs = {};
 db.ref('smart_playlist/').on('value', (snap) => {
     allSongs = snap.val();
-    showCat('all'); // Default sab dikhao
-});
-
-function showCat(cat) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
     
     if (!allSongs) {
-        list.innerHTML = "<p>Koi gaana nahi hai. Add kijiye!</p>";
+        list.innerHTML = "<p style='text-align:center;'>Playlist khali hai. Gaana add karein!</p>";
         return;
     }
 
     for (let id in allSongs) {
         const song = allSongs[id];
-        if (cat === 'all' || song.user === cat) {
-            list.innerHTML += `
-                <li class="song-item">
-                    <div class="song-info">
-                        <b>${song.name}</b> <br>
-                        <small>Added by: ${song.user}</small>
-                    </div>
-                    <div class="actions">
-                        <button class="play-btn" onclick="playNow('${song.url}', '${song.name}')">▶ Play</button>
-                        <button class="del-btn" onclick="deleteSong('${id}')">🗑️</button>
-                    </div>
-                </li>`;
-        }
+        const li = document.createElement('li');
+        li.className = "song-item";
+        li.innerHTML = `
+            <div class="song-info">
+                <b>${song.name}</b> <br>
+                <small>By: ${song.user}</small>
+            </div>
+            <div class="actions">
+                <button class="play-btn" onclick="playNow('${song.url}', '${song.name}')">▶ Play</button>
+                <button class="del-btn" style="background:#ff4444; margin-left:10px;" onclick="deleteSong('${id}')">🗑️</button>
+            </div>
+        `;
+        list.appendChild(li);
     }
-}
+});
 
-// 4. SMART PLAY LOGIC (Fixes 403 Forbidden)
+// 5. Smart Play Logic (Google Drive Bypass)
 function playNow(rawUrl, name) {
-    const p = document.getElementById('main-player');
+    const player = document.getElementById('main-player');
     const title = document.getElementById('playing-now');
     
-    // Google ID extract karna
+    // Google Drive ID nikalne ka regex
     const match = rawUrl.match(/[-\w]{25,}/);
     
     if (match) {
         const fileId = match[0];
-        // Stream URL bypass
-        const playUrl = `https://docs.google.com/uc?id=${fileId}`;
         
-        p.pause();
-        p.src = playUrl;
-        p.load();
+        // Method 1: UC Export (Sabse tez)
+        const method1 = `https://docs.google.com/uc?export=open&id=${fileId}`;
+        // Method 2: Direct Stream (Bypass link)
+        const method2 = `https://drive.google.com/uc?id=${fileId}&export=download`;
         
-        title.innerText = "Buffering: " + name;
+        player.pause();
+        player.src = method1; 
+        player.load();
+        
+        title.innerText = "Connecting... " + name;
 
-        p.play().then(() => {
-            title.innerText = "Playing: " + name;
-        }).catch(err => {
-            console.error(err);
-            title.innerText = "⚠️ Permission Error! Check Drive Link.";
-            alert("Google Drive error! Make sure the link is 'Anyone with link'.");
-        });
+        // Play koshish karein
+        let playPromise = player.play();
+
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                title.innerText = "Playing: " + name;
+            }).catch(error => {
+                console.log("Method 1 failed, trying Method 2...");
+                // Agar Method 1 fail ho (403 Error), toh Method 2 try karein
+                player.src = method2;
+                player.play().then(() => {
+                    title.innerText = "Playing (Bypass Mode): " + name;
+                }).catch(err => {
+                    title.innerText = "⚠️ Error: Drive Permission Issue!";
+                    console.error("All play methods failed.");
+                });
+            });
+        }
     } else {
-        alert("Invalid Drive Link!");
+        alert("Bhai, ye Google Drive ka link nahi lag raha. Check karein!");
+    }
+}
+
+// 6. Category Filter (Optional support)
+function showCat(cat) {
+    const list = document.getElementById('playlist');
+    list.innerHTML = "";
+    for (let id in allSongs) {
+        if (cat === 'all' || allSongs[id].user === cat) {
+            const song = allSongs[id];
+            list.innerHTML += `
+                <li class="song-item">
+                    <div class="song-info"><b>${song.name}</b><br><small>${song.user}</small></div>
+                    <div class="actions">
+                        <button class="play-btn" onclick="playNow('${song.url}', '${song.name}')">▶ Play</button>
+                        <button class="del-btn" style="background:#ff4444; margin-left:10px;" onclick="deleteSong('${id}')">🗑️</button>
+                    </div>
+                </li>`;
+        }
     }
 }
