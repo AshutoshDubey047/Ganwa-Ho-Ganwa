@@ -1,83 +1,100 @@
-// Firebase Config (Aapka purana wala hi rahega)
-const firebaseConfig = { ... }; 
+const firebaseConfig = {
+    apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
+    authDomain: "ganwaplayer.firebaseapp.com",
+    databaseURL: "https://ganwaplayer-default-rtdb.firebaseio.com",
+    projectId: "ganwaplayer",
+    storageBucket: "ganwaplayer.firebasestorage.app",
+    messagingSenderId: "28027251724",
+    appId: "1:28027251724:web:792638e52fd8d842671229"
+};
+
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const audio = document.getElementById('mainAudio');
 
 let currentQueue = [];
-let currentSongIndex = -1;
+let currentIndex = -1;
 
-// --- 1. DATA LOAD ---
+// 1. DATA SYNC
 db.ref('collections').on('value', (snap) => {
     const data = snap.val();
     const select = document.getElementById('playlistSelect');
-    const container = document.getElementById('songsList');
-    const activeP = select.value || "ALL";
+    const oldVal = select.value || "ALL";
+    
+    let opts = '<option value="ALL">✨ All Playlists</option>';
+    if(data) Object.keys(data).forEach(p => { if(p !== "_init") opts += `<option value="${p}">${p}</option>`; });
+    select.innerHTML = opts;
+    select.value = oldVal;
 
-    // Update Dropdown
-    let options = '<option value="ALL">✨ All Playlists</option>';
-    if(data) {
-        Object.keys(data).forEach(p => { if(p !== "_init") options += `<option value="${p}">${p}</option>`; });
-    }
-    select.innerHTML = options;
-    select.value = activeP;
-
-    // Render Songs
-    container.innerHTML = "";
-    currentQueue = [];
-    for (let pName in data) {
-        if (activeP !== "ALL" && pName !== activeP) continue;
-        const songs = data[pName];
-        for (let id in songs) {
-            if (id === "_init") continue;
-            currentQueue.push({ ...songs[id], pName, id });
-            let idx = currentQueue.length - 1;
-            container.innerHTML += `
-                <div class="song-item" style="display:flex; justify-content:space-between; background:#181818; padding:15px; margin:10px 0; border-radius:10px; border-left:4px solid #1db954;">
-                    <div onclick="playSong(${idx})" style="flex:1; cursor:pointer;">
-                        <b style="color:#fff;">${songs[id].name}</b><br>
-                        <small style="color:#888;">${pName}</small>
-                    </div>
-                    <button onclick="confirmDelete('${pName}','${id}')" style="background:none; border:none; color:#ff4444; font-size:20px; cursor:pointer;">🗑️</button>
-                </div>`;
-        }
-    }
+    loadSongs();
 });
 
-// --- 2. THE PLAYER ENGINE (No Iframe) ---
-const audioPlayer = new Audio();
+function loadSongs() {
+    const pSel = document.getElementById('playlistSelect').value;
+    const list = document.getElementById('songsList');
+    list.innerHTML = "";
+    currentQueue = [];
 
+    db.ref('collections').once('value', (snap) => {
+        const data = snap.val();
+        for (let p in data) {
+            if (pSel !== "ALL" && p !== pSel) continue;
+            for (let id in data[p]) {
+                if (id === "_init") continue;
+                currentQueue.push({ ...data[p][id], pName: p, id: id });
+                let idx = currentQueue.length - 1;
+                list.innerHTML += `
+                    <div class="song-item">
+                        <div class="song-info" onclick="playSong(${idx})">
+                            <b>${data[p][id].name}</b><br><small style="color:#888;">${p}</small>
+                        </div>
+                        <button class="del-btn" onclick="deleteSong3X('${p}','${id}','${data[p][id].name}')">🗑️</button>
+                    </div>`;
+            }
+        }
+    });
+}
+
+// 2. PLAY & AUTO-NEXT
 function playSong(idx) {
-    if (idx < 0 || idx >= currentQueue.length) return;
-    currentSongIndex = idx;
+    if(idx < 0 || idx >= currentQueue.length) return;
+    currentIndex = idx;
     const song = currentQueue[idx];
     const fileId = song.url.match(/[-\w]{25,}/);
 
     if (fileId) {
-        document.getElementById('playing-now').innerText = "▶ " + song.name;
-        // Direct Proxy Link to bypass Google Block
-        audioPlayer.src = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
-        audioPlayer.play().catch(() => {
-            alert("Please click anywhere on the page once to allow Autoplay!");
-        });
+        document.getElementById('status').innerText = "▶ Playing: " + song.name;
+        // Direct Download Stream Bypass
+        audio.src = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
+        audio.play().catch(() => console.log("User must click once for autoplay"));
     }
 }
 
-// AUTO-NEXT: This works 100% with Audio Tag (No Reload Needed)
-audioPlayer.onended = () => {
-    let next = currentSongIndex + 1;
-    if(next < currentQueue.length) playSong(next);
-};
+audio.onended = () => { playNext(); };
 
-// --- 3. DOUBLE CONFIRMATION DELETE ---
-function confirmDelete(p, id) {
-    if (confirm("⚠️ Are you sure you want to delete this song?")) {
-        if (confirm("🛑 FINAL CONFIRMATION: Remove it forever?")) {
-            db.ref(`collections/${p}/${id}`).remove();
+function playNext() {
+    let next = currentIndex + 1;
+    if(next < currentQueue.length) playSong(next);
+}
+
+// 3. 3-TIMES DELETE CONFIRMATION
+function deleteSong3X(playlist, songId, songName) {
+    const confirm1 = confirm("⚠️ STEP 1: Delete '" + songName + "'?");
+    if(confirm1) {
+        const confirm2 = confirm("🛑 STEP 2: Are you REALLY sure? This cannot be undone.");
+        if(confirm2) {
+            const confirm3 = confirm("❗ STEP 3: FINAL WARNING! Press OK to permanently remove this song.");
+            if(confirm3) {
+                db.ref(`collections/${playlist}/${songId}`).remove();
+            }
         }
     }
 }
 
-function playNext() {
-    let next = currentSongIndex + 1;
-    if(next < currentQueue.length) playSong(next);
+// 4. ADD SONG
+function addSong() {
+    const n = document.getElementById('songName').value;
+    const u = document.getElementById('songUrl').value;
+    const p = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
+    if(n && u) db.ref(`collections/${p}`).push({ name: n, url: u });
 }
