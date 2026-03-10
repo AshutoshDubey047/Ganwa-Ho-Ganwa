@@ -11,100 +11,66 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
-// --- 1. LIVE SYNC DROPDOWN & RENDER ---
+// --- 1. GLOBAL DATA SYNC ---
+// Isse data hamesha fresh rahega aur switch karne pe gayab nahi hoga
 db.ref('collections/').on('value', (snap) => {
-    const select = document.getElementById('playlistSelect');
     const allData = snap.val();
-    const currentSelection = select.value || "ALL_SONGS";
+    updateDropdown(allData);
+    const currentView = document.getElementById('playlistSelect').value || "ALL_SONGS";
+    renderSongs(allData, currentView);
+});
+
+// --- 2. UPDATE DROPDOWN (Bina Selection Bigade) ---
+function updateDropdown(allData) {
+    const select = document.getElementById('playlistSelect');
+    const currentVal = select.value;
     
-    // Dropdown options update
-    let optionsHTML = '<option value="ALL_SONGS">✨ All Songs (Everything)</option>';
-    optionsHTML += '<option value="Default">Default</option>';
+    let html = '<option value="ALL_SONGS">✨ All Songs (Everything)</option>';
+    html += '<option value="Default">Default</option>';
     
     if (allData) {
         Object.keys(allData).forEach(pName => {
             if (pName !== "Default" && pName !== "_init") {
-                optionsHTML += `<option value="${pName}">${pName}</option>`;
+                html += `<option value="${pName}">${pName}</option>`;
             }
         });
     }
-    select.innerHTML = optionsHTML;
-    select.value = currentSelection; // Jo user ne chuna tha wahi rakho
+    
+    // Sirf tabhi update karo agar options badle hain, taki selection jump na kare
+    if (select.innerHTML !== html) {
+        select.innerHTML = html;
+        select.value = currentVal || "ALL_SONGS";
+    }
+}
 
-    // Screen par display update karo
-    renderSongs(allData, currentSelection);
-});
-
-// --- 2. DROPDOWN CHANGE HANDLER ---
+// --- 3. SWITCH VIEW HANDLER ---
 function onPlaylistChange() {
     const selectedP = document.getElementById('playlistSelect').value;
-    const targetDisplay = document.getElementById('targetDisplayName');
+    document.getElementById('targetDisplayName').innerText = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
     
-    // UI par turant dikhao ki ab gaana kahan jayega
-    targetDisplay.innerText = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
-    
-    // List refresh karo
+    // Data ko phir se fetch karke render karo
     db.ref('collections/').once('value', (snap) => {
         renderSongs(snap.val(), selectedP);
     });
 }
 
-// --- 3. CREATE NEW PLAYLIST ---
-function createNewPlaylist() {
-    let nameInput = document.getElementById('newPlaylistInput');
-    let name = nameInput.value.trim();
-    if (name) {
-        db.ref('collections/' + name).update({ _init: true })
-        .then(() => {
-            alert(`Playlist "${name}" created!`);
-            nameInput.value = "";
-            document.getElementById('playlistSelect').value = name;
-            onPlaylistChange(); // UI update karne ke liye
-        });
-    }
-}
-
-// --- 4. ADD SONG (FIXED TARGETING) ---
-function addSong() {
-    const name = document.getElementById('songName').value;
-    const url = document.getElementById('songUrl').value;
-    const selectBox = document.getElementById('playlistSelect');
-    
-    // Asli selected value yahan se uthao
-    let selectedP = selectBox.options[selectBox.selectedIndex].value;
-    
-    // Agar "All Songs" chuna hai toh "Default" mein dalo, warna jo chuna hai usi mein
-    let target = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
-
-    if (name && url) {
-        db.ref('collections/' + target).push({ name, url })
-        .then(() => {
-            document.getElementById('songName').value = "";
-            document.getElementById('songUrl').value = "";
-            alert(`Saved successfully in: ${target}`);
-        }).catch(err => alert("Firebase Error: " + err.message));
-    } else {
-        alert("Enter Song Name and Link!");
-    }
-}
-
-// --- 5. MASTER RENDER ---
+// --- 4. RENDER LOGIC (THE FIX) ---
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
     if (!allData) return;
 
     for (let pName in allData) {
-        // FILTER: Sirf selected playlist dikhao (unless ALL_SONGS is selected)
+        // Agar "ALL_SONGS" nahi hai, toh sirf selected wali playlist dikhao
         if (selectedP !== "ALL_SONGS" && pName !== selectedP) continue;
 
         const songs = allData[pName];
         for (let id in songs) {
-            if (id === "_init" || id === "_created") continue;
+            if (id === "_init") continue;
             const song = songs[id];
             
             list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid ${pName === 'Default' ? '#1db954' : '#fb8c00'};">
+                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:8px 0; padding:12px; border-radius:10px; border-left:4px solid ${pName === 'Default' ? '#1db954' : '#fb8c00'};">
                     <span>
                         <b style="color:white;">${song.name}</b><br>
                         <small style="color:#888;">Playlist: ${pName}</small>
@@ -118,8 +84,39 @@ function renderSongs(allData, selectedP) {
     }
 }
 
+// --- 5. ADD & DELETE FUNCTIONS ---
+function addSong() {
+    const name = document.getElementById('songName').value;
+    const url = document.getElementById('songUrl').value;
+    const selectBox = document.getElementById('playlistSelect');
+    const selectedP = selectBox.value;
+    
+    let target = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
+
+    if (name && url) {
+        db.ref('collections/' + target).push({ name, url })
+        .then(() => {
+            document.getElementById('songName').value = "";
+            document.getElementById('songUrl').value = "";
+            alert("Added to " + target);
+        });
+    }
+}
+
+function createNewPlaylist() {
+    let nameInput = document.getElementById('newPlaylistInput');
+    let name = nameInput.value.trim();
+    if (name) {
+        db.ref('collections/' + name).update({ _init: true }).then(() => {
+            nameInput.value = "";
+            document.getElementById('playlistSelect').value = name;
+            onPlaylistChange();
+        });
+    }
+}
+
 function deleteSong(pName, sId) {
-    if(confirm("Delete gaana?")) { db.ref(`collections/${pName}/${sId}`).remove(); }
+    if(confirm("Delete this song?")) { db.ref(`collections/${pName}/${sId}`).remove(); }
 }
 
 function playSong(url, name) {
