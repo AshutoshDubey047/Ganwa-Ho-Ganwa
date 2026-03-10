@@ -3,55 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Pro</title>
+    <title>Ganwa Player | Pro Max</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --spotify-green: #1db954; --bg-black: #000; --card-bg: #121212; }
-        body { background: var(--bg-black); color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding-bottom: 200px; }
-        .header { text-align: center; padding: 30px 0; border-bottom: 1px solid #282828; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #282828; }
-        select, input { width: 100%; padding: 12px; margin: 8px 0; background: #282828; color: white; border: none; border-radius: 6px; box-sizing: border-box; }
-        .btn-play { background: var(--spotify-green); color: black; border: none; padding: 12px; border-radius: 25px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--spotify-green); }
+        :root { --green: #1db954; --black: #121212; }
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 200px; }
+        .container { max-width: 500px; margin: auto; padding: 20px; }
+        .card { background: var(--black); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
+        select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
+        .btn-add { background: var(--green); color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
+        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid var(--green); }
         .song-info { flex: 1; cursor: pointer; }
-        .del-icon { background: none; border: none; color: #ff4444; font-size: 20px; cursor: pointer; padding: 5px; }
-        footer { position: fixed; bottom: 0; width: 100%; background: rgba(18,18,18,0.98); border-top: 2px solid var(--spotify-green); padding: 20px; box-sizing: border-box; z-index: 1000; }
-        #status-bar { color: var(--spotify-green); font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        iframe { border-radius: 10px; background: #000; }
+        .del-btn { background: none; border: none; color: #ff4444; font-size: 20px; cursor: pointer; padding-left: 10px; }
+        footer { position: fixed; bottom: 0; width: 100%; background: rgba(18,18,18,0.98); border-top: 2px solid var(--green); padding: 20px; box-sizing: border-box; text-align: center; }
+        #status { color: var(--green); font-weight: bold; margin-bottom: 10px; font-size: 14px; display: block; }
+        audio { width: 100%; filter: invert(100%) hue-rotate(90deg); height: 40px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1 style="color: var(--spotify-green); margin: 0;">🎶 Ganwa Player Pro</h1>
-</div>
-
 <div class="container">
+    <h1 style="color: var(--green); text-align: center;">🎶 Ganwa Player</h1>
+
     <div class="card">
-        <label style="font-size: 12px; color: #888;">SELECT PLAYLIST</label>
-        <select id="playlistSelect" onchange="loadSongs()">
-            <option value="ALL">✨ All Songs</option>
-        </select>
+        <select id="playlistSelect" onchange="loadSongs()"><option value="ALL">✨ All Playlists</option></select>
     </div>
 
     <div class="card">
-        <input type="text" id="songName" placeholder="Song Name...">
-        <input type="text" id="songUrl" placeholder="Google Drive Link...">
-        <button class="btn-play" onclick="addSong()">ADD TO MY CLOUD</button>
+        <input type="text" id="songName" placeholder="Song Name">
+        <input type="text" id="songUrl" placeholder="Google Drive Link">
+        <button class="btn-add" onclick="addSong()">➕ ADD SONG</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <div id="status-bar">
-        <span id="playing-now">Choose a track...</span>
-        <button onclick="playNext()" style="background:none; border:1px solid var(--spotify-green); color:white; border-radius:20px; padding:2px 10px; cursor:pointer;">NEXT ⏭️</button>
-    </div>
-    <div id="playerBox">
-        <div style="height: 80px; display: flex; align-items: center; justify-content: center; color: #444;">Player Ready</div>
+    <span id="status">Select a song...</span>
+    <audio id="mainAudio" controls autoplay></audio>
+    <div style="margin-top: 10px;">
+        <button onclick="playNext()" style="background:none; border:1px solid var(--green); color:white; padding:5px 20px; border-radius:20px; cursor:pointer;">NEXT ⏭️</button>
     </div>
 </footer>
 
