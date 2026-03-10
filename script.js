@@ -15,55 +15,44 @@ const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SON
 let currentQueue = []; 
 let currentSongIndex = -1;
 
-// --- 1. LIVE SYNC ---
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
     const select = document.getElementById('playlistSelect');
     const currentVal = select.value || "ALL_SONGS";
-    
-    // Update Dropdown
-    let optionsHTML = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
+    let html = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
     if (allData) {
         Object.keys(allData).forEach(pName => {
             if (!protectedPlaylists.includes(pName) && pName !== "_init") {
-                optionsHTML += `<option value="${pName}">${pName}</option>`;
+                html += `<option value="${pName}">${pName}</option>`;
             }
         });
     }
-    select.innerHTML = optionsHTML;
+    select.innerHTML = html;
     select.value = currentVal; 
     renderSongs(allData, currentVal);
 });
 
-// --- 2. RENDER & QUEUE ---
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
     currentQueue = []; 
     if (!allData) return;
-
     for (let pName in allData) {
         if (selectedP !== "ALL_SONGS" && pName !== selectedP) continue;
         const songs = allData[pName];
         for (let id in songs) {
             if (id === "_init") continue;
-            const song = songs[id];
-            currentQueue.push({ name: song.name, url: song.url });
+            currentQueue.push({ name: songs[id].name, url: songs[id].url });
             let index = currentQueue.length - 1;
-
-            list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #1db954;">
-                    <span><b style="color:white;">${song.name}</b><br><small style="color:#666;">Playlist: ${pName}</small></span>
-                    <div>
-                        <button onclick="playSong(${index})" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; border:none; padding:8px 12px; border-radius:5px; color:white; margin-left:5px; cursor:pointer;">🗑️</button>
-                    </div>
-                </li>`;
+            list.innerHTML += `<li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #1db954;">
+                <span><b style="color:white;">${songs[id].name}</b></span>
+                <button onclick="playSong(${index})" style="background:#1db954; border:none; padding:8px; border-radius:5px;">▶</button>
+            </li>`;
         }
     }
 }
 
-// --- 3. AUDIO PLAYER & AUTO-NEXT ---
+// MAIN PLAY LOGIC
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
@@ -73,17 +62,23 @@ function playSong(index) {
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
-        // Direct Download Link for Auto-play to work
+        // HACK: Use direct link and add a timestamp to bypass cache if needed
         const directLink = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
         title.innerText = "Playing: " + song.name;
         audio.src = directLink;
-        audio.play().catch(e => console.log("Playback error:", e));
-    } else {
-        alert("Invalid Drive Link!");
+        audio.load(); // Force reload for new source
+        
+        let playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("Autoplay prevented. User must click play.");
+            });
+        }
     }
 }
 
 function playNextSong() {
+    console.log("Song Ended. Moving to next...");
     let next = currentSongIndex + 1;
     if (next < currentQueue.length) {
         playSong(next);
@@ -92,21 +87,7 @@ function playNextSong() {
     }
 }
 
-// --- 4. DELETE & ACTIONS ---
-function deleteSong(pName, sId) {
-    if (confirm("Check 1: Delete this song?") && confirm("Check 2: Are you REALLY sure?")) {
-        db.ref(`collections/${pName}/${sId}`).remove();
-    }
-}
-
-function deleteFullPlaylist() {
-    const name = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(name)) return alert("Protected!");
-    if (confirm(`Delete entire "${name}"?`) && confirm("Final Warning!")) {
-        db.ref('collections/' + name).remove();
-    }
-}
-
+// Helper functions for playlist management
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -134,5 +115,13 @@ function createNewPlaylist() {
             document.getElementById('playlistSelect').value = name;
             onPlaylistChange();
         });
+    }
+}
+
+function deleteFullPlaylist() {
+    const name = document.getElementById('playlistSelect').value;
+    if (protectedPlaylists.includes(name)) return alert("Reserved!");
+    if (confirm(`Delete "${name}"?`) && confirm("Final Warning!")) {
+        db.ref('collections/' + name).remove();
     }
 }
