@@ -8,105 +8,76 @@ const firebaseConfig = {
     appId: "1:28027251724:web:792638e52fd8d842671229"
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+// Initialize Firebase
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
-let allSongsQueue = [];
-let currentIndex = -1;
-
-// 1. Fetch Data
-db.ref('collections/').on('value', (snap) => {
-    const data = snap.val();
-    const select = document.getElementById('playlistSelect');
-    const currentPlaylist = select.value || "ALL_SONGS";
+// --- 1. Real-time Listen (Data Dikhega) ---
+db.ref('collections/Default').on('value', (snapshot) => {
+    const songListDiv = document.getElementById('song-list-container');
+    songListDiv.innerHTML = ""; // Clear old list
     
-    // Update Dropdown
-    let options = '<option value="ALL_SONGS">✨ All Songs</option>';
-    if (data) {
-        Object.keys(data).forEach(p => {
-            if (p !== "_init") options += `<option value="${p}">${p}</option>`;
-        });
+    const data = snapshot.val();
+    if (!data) {
+        songListDiv.innerHTML = "<p style='text-align:center;'>No songs found. Add one!</p>";
+        return;
     }
-    select.innerHTML = options;
-    select.value = currentPlaylist;
 
-    renderSongs(data, currentPlaylist);
+    // Loop through songs
+    Object.keys(data).forEach((id) => {
+        if (id === "_init") return;
+        const song = data[id];
+        
+        songListDiv.innerHTML += `
+            <div class="song-item">
+                <div onclick="playSong('${song.url}', '${song.name}')" style="flex:1; cursor:pointer;">
+                    <b>${song.name}</b>
+                </div>
+                <button class="del-btn" onclick="deleteSong('${id}')">DELETE</button>
+            </div>
+        `;
+    });
 });
 
-// 2. Render Songs (Fixed Delete Button)
-function renderSongs(data, selectedP) {
-    const listDiv = document.getElementById('playlist-list');
-    listDiv.innerHTML = "";
-    allSongsQueue = [];
-
-    if (!data) return;
-
-    for (let pName in data) {
-        if (selectedP !== "ALL_SONGS" && pName !== selectedP) continue;
-        const songs = data[pName];
-        
-        for (let id in songs) {
-            if (id === "_init") continue;
-            const song = songs[id];
-            allSongsQueue.push({ ...song, pName, id });
-            let idx = allSongsQueue.length - 1;
-
-            // HTML for each song row
-            listDiv.innerHTML += `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin-bottom:8px; border-radius:8px; border-left:4px solid #1db954;">
-                    <div onclick="playThis(${idx})" style="flex:1; cursor:pointer;">
-                        <b style="color:#fff; font-size:14px;">${song.name}</b><br>
-                        <small style="color:#666;">${pName}</small>
-                    </div>
-                    <button onclick="deleteThisSong('${pName}', '${id}')" style="background:#ff4444; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold; cursor:pointer; margin-left:10px;">DEL</button>
-                </div>`;
-        }
-    }
-}
-
-// 3. Play Logic (Using Iframe to prevent "No Sound" error)
-function playThis(idx) {
-    currentIndex = idx;
-    const song = allSongsQueue[idx];
-    const holder = document.getElementById('iframe-holder');
-    const status = document.getElementById('playing-now');
-
-    const fileId = song.url.match(/[-\w]{25,}/);
-    if (fileId) {
-        status.innerText = "▶ Playing: " + song.name;
-        // This is the ONLY link that works 100% for Drive
-        holder.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="60" style="border:none; border-radius:5px; background:#000;" allow="autoplay"></iframe>`;
-    } else {
-        alert("Invalid Drive Link!");
-    }
-}
-
-function playNextSong() {
-    let next = currentIndex + 1;
-    if (next < allSongsQueue.length) playThis(next);
-}
-
-// 4. Delete Logic
-function deleteThisSong(playlist, songId) {
-    if (confirm("Pakka delete karu?")) {
-        db.ref(`collections/${playlist}/${songId}`).remove();
-    }
-}
-
-// 5. Add Song Logic
+// --- 2. Add Song ---
 function addSong() {
     const name = document.getElementById('songName').value;
     const url = document.getElementById('songUrl').value;
-    const playlist = document.getElementById('playlistSelect').value === "ALL_SONGS" ? "Default" : document.getElementById('playlistSelect').value;
-
+    
     if (name && url) {
-        db.ref(`collections/${playlist}`).push({ name, url }).then(() => {
+        db.ref('collections/Default').push({ name: name, url: url })
+        .then(() => {
             document.getElementById('songName').value = "";
             document.getElementById('songUrl').value = "";
+            alert("Song added successfully!");
         });
+    } else {
+        alert("Please fill both fields!");
     }
 }
 
-function onPlaylistChange() {
-    db.ref('collections/').once('value', (s) => renderSongs(s.val(), document.getElementById('playlistSelect').value));
+// --- 3. Play Song (Sunaai dega) ---
+function playSong(url, name) {
+    const playerDiv = document.getElementById('player-ui');
+    const status = document.getElementById('now-playing');
+    
+    // Google Drive ID extract
+    const fileId = url.match(/[-\w]{25,}/);
+    
+    if (fileId) {
+        status.innerText = "▶ Playing: " + name;
+        playerDiv.innerHTML = `
+            <iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" 
+            width="100%" height="60" style="border:none; border-radius:5px; background:#000;" 
+            allow="autoplay"></iframe>`;
+    } else {
+        alert("Invalid Link! Make sure it's a Google Drive link.");
+    }
+}
+
+// --- 4. Delete Song ---
+function deleteSong(id) {
+    if (confirm("Are you sure you want to delete this song?")) {
+        db.ref('collections/Default/' + id).remove();
+    }
 }
