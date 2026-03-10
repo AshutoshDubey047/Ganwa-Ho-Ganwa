@@ -15,21 +15,22 @@
         <div class="input-card">
             <h3>📁 My Playlists</h3>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="newPlaylistName" placeholder="New Playlist Name...">
-                <button onclick="createNewPlaylist()">Create</button>
+                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
+                <button onclick="createNewPlaylist()">Create & Save</button>
             </div>
-            <select id="playlistSelect" onchange="changePlaylistView()" style="width:100%; padding:10px; background:#282828; color:white; border-radius:5px;">
+            
+            <label>Select Playlist View:</label>
+            <select id="playlistSelect" onchange="loadSongs()" style="width:100%; padding:10px; background:#282828; color:white; border-radius:5px; margin-top:5px;">
                 <option value="ALL_SONGS">✨ All Songs (Everything)</option>
                 <option value="Default">Default</option>
             </select>
-            <p style="margin-top:10px;">Viewing: <b id="currentPName" style="color:#1db954;">All Songs</b></p>
         </div>
 
         <div class="input-card">
             <h3>➕ Add Song</h3>
+            <p style="font-size:12px; color:#1db954;">Adding to: <b id="targetDisplayName">Default</b></p>
             <input type="text" id="songName" placeholder="Song Name">
             <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <p style="font-size:12px; color:#888;">Adding to: <span id="targetPName">Default</span></p>
             <button onclick="addSong()" style="background:#1db954; width:100%; margin-top:10px;">Add Song</button>
         </div>
 
