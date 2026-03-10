@@ -8,76 +8,99 @@ const firebaseConfig = {
     appId: "1:28027251724:web:792638e52fd8d842671229"
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- 1. Real-time Listen (Data Dikhega) ---
-db.ref('collections/Default').on('value', (snapshot) => {
-    const songListDiv = document.getElementById('song-list-container');
-    songListDiv.innerHTML = ""; // Clear old list
-    
-    const data = snapshot.val();
-    if (!data) {
-        songListDiv.innerHTML = "<p style='text-align:center;'>No songs found. Add one!</p>";
-        return;
-    }
+let currentQueue = [];
+let currentSongIndex = -1;
+const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
 
-    // Loop through songs
-    Object.keys(data).forEach((id) => {
-        if (id === "_init") return;
-        const song = data[id];
-        
-        songListDiv.innerHTML += `
-            <div class="song-item">
-                <div onclick="playSong('${song.url}', '${song.name}')" style="flex:1; cursor:pointer;">
-                    <b>${song.name}</b>
-                </div>
-                <button class="del-btn" onclick="deleteSong('${id}')">DELETE</button>
-            </div>
-        `;
-    });
+// 1. Load Everything
+db.ref('collections').on('value', (snap) => {
+    const data = snap.val();
+    const select = document.getElementById('playlistSelect');
+    const activeP = select.value || "ALL_SONGS";
+    
+    // Update Dropdown
+    let options = '<option value="ALL_SONGS">✨ All Songs</option>';
+    if (data) {
+        Object.keys(data).forEach(p => {
+            if (p !== "_init") options += `<option value="${p}">${p}</option>`;
+        });
+    }
+    select.innerHTML = options;
+    select.value = activeP;
+
+    renderSongs(data, activeP);
 });
 
-// --- 2. Add Song ---
+function renderSongs(data, selected) {
+    const container = document.getElementById('song-list-container');
+    container.innerHTML = "";
+    currentQueue = [];
+    if (!data) return;
+
+    for (let pName in data) {
+        if (selected !== "ALL_SONGS" && pName !== selected) continue;
+        const songs = data[pName];
+        for (let id in songs) {
+            if (id === "_init") continue;
+            currentQueue.push({ ...songs[id], pName, id });
+            let idx = currentQueue.length - 1;
+
+            container.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#121212; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #282828; transition:0.3s;" onmouseover="this.style.background='#181818'" onmouseout="this.style.background='#121212'">
+                    <div onclick="playSong(${idx})" style="flex:1; cursor:pointer;">
+                        <b style="color:#fff; font-size:15px;">${songs[id].name}</b><br>
+                        <small style="color:#1db954;">${pName}</small>
+                    </div>
+                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:#ff4444; font-size:18px; cursor:pointer; padding:5px;">🗑️</button>
+                </div>`;
+        }
+    }
+}
+
+// 2. Player Logic
+function playSong(idx) {
+    if (idx < 0 || idx >= currentQueue.length) return;
+    currentSongIndex = idx;
+    const song = currentQueue[idx];
+    const wrapper = document.getElementById('player-frame-wrapper');
+    const status = document.getElementById('playing-now');
+
+    const fileId = song.url.match(/[-\w]{25,}/);
+    if (fileId) {
+        status.innerText = "▶ " + song.name;
+        // Iframe method is the ONLY one that bypasses Google block
+        wrapper.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none; background:#000;" allow="autoplay"></iframe>`;
+    }
+}
+
+function playNextSong() {
+    let next = currentSongIndex + 1;
+    if (next < currentQueue.length) playSong(next);
+    else alert("Playlist Ended!");
+}
+
+// 3. Admin Tools
 function addSong() {
-    const name = document.getElementById('songName').value;
-    const url = document.getElementById('songUrl').value;
-    
-    if (name && url) {
-        db.ref('collections/Default').push({ name: name, url: url })
-        .then(() => {
+    const n = document.getElementById('songName').value;
+    const u = document.getElementById('songUrl').value;
+    const p = document.getElementById('playlistSelect').value;
+    const target = (p === "ALL_SONGS") ? "Default" : p;
+
+    if (n && u) {
+        db.ref(`collections/${target}`).push({ name: n, url: u }).then(() => {
             document.getElementById('songName').value = "";
             document.getElementById('songUrl').value = "";
-            alert("Song added successfully!");
         });
-    } else {
-        alert("Please fill both fields!");
     }
 }
 
-// --- 3. Play Song (Sunaai dega) ---
-function playSong(url, name) {
-    const playerDiv = document.getElementById('player-ui');
-    const status = document.getElementById('now-playing');
-    
-    // Google Drive ID extract
-    const fileId = url.match(/[-\w]{25,}/);
-    
-    if (fileId) {
-        status.innerText = "▶ Playing: " + name;
-        playerDiv.innerHTML = `
-            <iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" 
-            width="100%" height="60" style="border:none; border-radius:5px; background:#000;" 
-            allow="autoplay"></iframe>`;
-    } else {
-        alert("Invalid Link! Make sure it's a Google Drive link.");
-    }
+function deleteSong(p, id) {
+    if (confirm("Delete this song?")) db.ref(`collections/${p}/${id}`).remove();
 }
 
-// --- 4. Delete Song ---
-function deleteSong(id) {
-    if (confirm("Are you sure you want to delete this song?")) {
-        db.ref('collections/Default/' + id).remove();
-    }
+function onPlaylistChange() {
+    db.ref('collections').once('value', (s) => renderSongs(s.val(), document.getElementById('playlistSelect').value));
 }
