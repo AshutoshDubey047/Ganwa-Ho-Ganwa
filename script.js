@@ -12,33 +12,33 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
 const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
-let currentQueue = []; 
+let currentQueue = [];
 let currentSongIndex = -1;
 
-// 1. Live Sync
+// SYNC DATA
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
     const select = document.getElementById('playlistSelect');
     const currentVal = select.value || "ALL_SONGS";
     
-    let html = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
+    let options = '<option value="ALL_SONGS">✨ All Songs</option><option value="Default">Default</option><option value="Ashutosh">Ashutosh</option><option value="Palak Dii">Palak Dii</option><option value="Laku">Laku</option>';
+    
     if (allData) {
-        Object.keys(allData).forEach(pName => {
-            if (!protectedPlaylists.includes(pName) && pName !== "_init") {
-                html += `<option value="${pName}">${pName}</option>`;
+        Object.keys(allData).forEach(p => {
+            if (!protectedPlaylists.includes(p) && p !== "_init") {
+                options += `<option value="${p}">${p}</option>`;
             }
         });
     }
-    select.innerHTML = html;
-    select.value = currentVal; 
+    select.innerHTML = options;
+    select.value = currentVal;
     renderSongs(allData, currentVal);
 });
 
-// 2. Render Songs (Fixed Delete & Play)
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
-    currentQueue = []; 
+    currentQueue = [];
     if (!allData) return;
 
     for (let pName in allData) {
@@ -47,39 +47,40 @@ function renderSongs(allData, selectedP) {
         for (let id in songs) {
             if (id === "_init") continue;
             const song = songs[id];
-            currentQueue.push({ name: song.name, url: song.url });
-            let index = currentQueue.length - 1;
+            currentQueue.push(song);
+            let idx = currentQueue.length - 1;
 
             const fileId = song.url.match(/[-\w]{25,}/);
-            const dlLink = fileId ? `https://docs.google.com/uc?export=download&id=${fileId[0]}` : "#";
+            const dl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId[0]}` : "#";
 
             list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #fb8c00;">
-                    <div style="flex:1;" onclick="playSong(${index})">
-                        <b style="color:white; cursor:pointer;">${song.name}</b><br>
+                <li style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:15px; margin:10px 0; border-radius:10px; border-left:5px solid #1db954;">
+                    <div style="flex:1; cursor:pointer;" onclick="playSong(${idx})">
+                        <b style="color:white; display:block;">${song.name}</b>
                         <small style="color:#666;">Playlist: ${pName}</small>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <a href="${dlLink}" target="_blank" style="text-decoration:none; font-size:18px;">📥</a>
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:red; font-size:18px; cursor:pointer;">🗑️</button>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <a href="${dl}" target="_blank" style="text-decoration:none; font-size:20px;">📥</a>
+                        <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:#ff4444; font-size:20px; cursor:pointer;">🗑️</button>
                     </div>
                 </li>`;
         }
     }
 }
 
-// 3. Play via Iframe (Most Reliable)
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
     const song = currentQueue[index];
-    const container = document.getElementById('iframe-container');
+    const playerBox = document.getElementById('player-box');
     const title = document.getElementById('playing-now');
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
-        title.innerText = "Playing: " + song.name;
-        container.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="60" style="border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>`;
+        title.innerText = "▶ Playing: " + song.name;
+        playerBox.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="60" style="border:none; border-radius:10px; background:#000;" allow="autoplay"></iframe>`;
+    } else {
+        alert("Bhai, ye Google Drive link sahi nahi hai!");
     }
 }
 
@@ -88,14 +89,13 @@ function playNextSong() {
     if (next < currentQueue.length) playSong(next);
 }
 
-// 4. Delete Logic (Double Confirmation)
 function deleteSong(pName, sId) {
-    if (confirm("Check 1: Delete this song?") && confirm("Check 2: Confirm Delete?")) {
+    if (confirm("Check 1: Delete?") && confirm("Check 2: CONFIRM?")) {
         db.ref(`collections/${pName}/${sId}`).remove();
     }
 }
 
-// 5. Playlist Helpers
+// MANAGEMENT
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -115,8 +115,8 @@ function addSong() {
 }
 
 function createNewPlaylist() {
-    let input = document.getElementById('newPlaylistInput');
-    let name = input.value.trim();
+    const input = document.getElementById('newPlaylistInput');
+    const name = input.value.trim();
     if (name && !protectedPlaylists.includes(name)) {
         db.ref('collections/' + name).update({ _init: true }).then(() => {
             input.value = "";
@@ -128,8 +128,8 @@ function createNewPlaylist() {
 
 function deleteFullPlaylist() {
     const name = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(name)) return alert("Reserved!");
-    if (confirm(`Delete entire "${name}"?`) && confirm("Last Warning!")) {
+    if (protectedPlaylists.includes(name)) return alert("Protected!");
+    if (confirm(`Delete ${name}?`) && confirm("Last Warning!")) {
         db.ref('collections/' + name).remove();
     }
 }
