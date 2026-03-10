@@ -3,84 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Pro Max | 2026</title>
+    <title>Ganwa Player FIX</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
     <style>
-        :root { --spotify-green: #1db954; --bg-black: #000; --card-bg: #121212; }
-        body { background: var(--bg-black); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding-bottom: 220px; }
-        
+        :root { --green: #1db954; --black: #121212; }
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; overflow-x: hidden; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
-        .header { text-align: center; padding: 20px 0; color: var(--spotify-green); }
+        .card { background: var(--black); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
+        input, select { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
+        .btn-add { background: var(--green); color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; }
         
-        /* Input & Dropdown Styling */
-        .admin-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #282828; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #282828; color: white; border: none; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        .add-btn { background: var(--spotify-green); color: black; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s; }
-        .add-btn:hover { transform: scale(1.02); }
-
-        /* Song List Styling */
-        .song-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: #181818; padding: 15px; margin-bottom: 12px; 
-            border-radius: 10px; border-left: 5px solid var(--spotify-green);
-            transition: 0.3s;
-        }
+        /* SONG LIST */
+        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid var(--green); }
         .song-info { flex: 1; cursor: pointer; }
-        .song-info b { font-size: 16px; display: block; margin-bottom: 4px; }
-        .song-info small { color: var(--spotify-green); font-size: 12px; }
+        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-left: 10px; font-size: 11px; }
 
-        /* Delete Button Red */
-        .del-btn { 
-            background: #ff4444; color: white; border: none; 
-            padding: 8px 15px; border-radius: 6px; font-weight: bold; 
-            cursor: pointer; font-size: 12px; margin-left: 10px;
-        }
-
-        /* Fixed Footer Player */
-        footer { 
-            position: fixed; bottom: 0; left: 0; width: 100%; 
-            background: rgba(8, 8, 8, 0.98); border-top: 2px solid var(--spotify-green); 
-            padding: 15px; box-sizing: border-box; text-align: center; z-index: 999;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
-        }
-        #now-playing { color: var(--spotify-green); font-weight: bold; margin-bottom: 10px; font-size: 14px; display: block; }
-        #player-frame { background: #000; border-radius: 10px; overflow: hidden; height: 80px; border: 1px solid #333; }
-        .next-btn { background: none; border: 1px solid var(--spotify-green); color: white; padding: 6px 25px; border-radius: 20px; cursor: pointer; margin-top: 12px; font-weight: bold; }
+        /* FOOTER PLAYER */
+        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid var(--green); padding: 15px; box-sizing: border-box; text-align: center; z-index: 1000; }
+        #status { color: var(--green); font-weight: bold; font-size: 14px; margin-bottom: 10px; display: block; }
+        #player-box { height: 85px; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header"><h1>🎶 Ganwa Player Pro</h1></div>
+    <h1 style="color: var(--green); text-align: center;">🎶 Ganwa Player Pro</h1>
 
-    <div class="admin-card">
-        <label style="font-size: 11px; color: #888;">CHOOSE PLAYLIST</label>
-        <select id="playlistSelect" onchange="renderSongs()">
-            <option value="ALL">✨ All Playlists</option>
-        </select>
+    <div class="card">
+        <select id="playlistSelect" onchange="renderSongs()"><option value="ALL">✨ All Playlists</option></select>
     </div>
 
-    <div class="admin-card">
-        <input type="text" id="songName" placeholder="Enter Song Name...">
-        <input type="text" id="songUrl" placeholder="Paste Google Drive Link...">
-        <button class="add-btn" onclick="addSong()">➕ ADD TO CLOUD</button>
+    <div class="card">
+        <input type="text" id="songName" placeholder="Song Name">
+        <input type="text" id="songUrl" placeholder="Google Drive Link">
+        <button class="btn-add" onclick="addSong()">➕ ADD SONG</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <span id="now-playing">Tap a song to play...</span>
-    <div id="player-frame">
-        <div style="padding-top:30px; color:#444; font-size: 12px;">Iframe Player Ready</div>
+    <span id="status">Select a song to start</span>
+    <div id="player-box">
+        <div style="padding-top:30px; color:#444;">Ready</div>
     </div>
-    <button class="next-btn" onclick="playNext()">NEXT SONG ⏭️</button>
+    <div style="margin-top:10px;">
+        <button onclick="playNext()" style="background:none; border:1px solid var(--green); color:white; padding:6px 20px; border-radius:20px; cursor:pointer; font-weight:bold;">NEXT ⏭️</button>
+    </div>
 </footer>
 
 <script>
-    // 1. Firebase Configuration
+    // 1. CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
         authDomain: "ganwaplayer.firebaseapp.com",
@@ -90,7 +64,6 @@
         messagingSenderId: "28027251724",
         appId: "1:28027251724:web:792638e52fd8d842671229"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -98,105 +71,93 @@
     let currentIndex = -1;
     let masterData = {};
 
-    // 2. Fetch Data (Real-time)
+    // 2. DATA SYNC
     db.ref('collections').on('value', (snap) => {
         masterData = snap.val();
         if(!masterData) return;
-
-        // Update Dropdown
+        
         const select = document.getElementById('playlistSelect');
-        const activeVal = select.value || "ALL";
-        let options = '<option value="ALL">✨ All Playlists</option>';
-        Object.keys(masterData).forEach(p => { 
-            if(p !== "_init") options += `<option value="${p}">${p}</option>`; 
-        });
-        select.innerHTML = options;
-        select.value = activeVal;
+        const currentP = select.value || "ALL";
+        let opts = '<option value="ALL">✨ All Playlists</option>';
+        Object.keys(masterData).forEach(p => { if(p !== "_init") opts += `<option value="${p}">${p}</option>`; });
+        select.innerHTML = opts;
+        select.value = currentP;
 
         renderSongs();
     });
 
-    // 3. Render Song List
     function renderSongs() {
-        const selectedPlaylist = document.getElementById('playlistSelect').value;
-        const listDiv = document.getElementById('songsList');
-        listDiv.innerHTML = "";
+        const selP = document.getElementById('playlistSelect').value;
+        const list = document.getElementById('songsList');
+        list.innerHTML = "";
         currentQueue = [];
 
-        for (let pName in masterData) {
-            if (selectedPlaylist !== "ALL" && pName !== selectedPlaylist) continue;
-            
-            const songs = masterData[pName];
-            for (let sId in songs) {
-                if (sId === "_init") continue;
-                
-                currentQueue.push({ ...songs[sId], pName, sId });
-                let currentIdx = currentQueue.length - 1;
-
-                listDiv.innerHTML += `
+        for (let p in masterData) {
+            if (selP !== "ALL" && p !== selP) continue;
+            for (let id in masterData[p]) {
+                if (id === "_init") continue;
+                currentQueue.push({ ...masterData[p][id], pName: p, id: id });
+                let idx = currentQueue.length - 1;
+                list.innerHTML += `
                     <div class="song-item">
-                        <div class="song-info" onclick="playSong(${currentIdx})">
-                            <b>${songs[sId].name}</b>
-                            <small>${pName}</small>
+                        <div class="song-info" onclick="playSong(${idx})">
+                            <b>${masterData[p][id].name}</b><br><small>${p}</small>
                         </div>
-                        <button class="del-btn" onclick="deleteSong3X('${pName}','${sId}','${songs[sId].name}')">DEL</button>
+                        <button class="del-btn" onclick="deleteSong3X('${p}','${id}','${masterData[p][id].name}')">DEL</button>
                     </div>`;
             }
         }
     }
 
-    // 4. Play Function (Google Drive Fix)
+    // 3. PLAY LOGIC (100% SUNAI DEGA)
     function playSong(idx) {
         if(idx < 0 || idx >= currentQueue.length) return;
         currentIndex = idx;
         const song = currentQueue[idx];
-        const fileIdMatch = song.url.match(/[-\w]{25,}/);
+        const fileId = song.url.match(/[-\w]{25,}/);
 
-        if (fileIdMatch) {
-            document.getElementById('now-playing').innerText = "▶ " + song.name;
-            // Using PREVIEW mode (Always plays audio)
-            document.getElementById('player-frame').innerHTML = 
-                `<iframe src="https://drive.google.com/file/d/${fileIdMatch[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
-        } else {
-            alert("Error: Incomplete Drive Link!");
+        if (fileId) {
+            document.getElementById('status').innerText = "▶ Playing: " + song.name;
+            // IFRAME is for the sound
+            document.getElementById('player-box').innerHTML = 
+                `<iframe id="musicFrame" src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
+            
+            // JUGAD: Google Iframe auto-next nahi deta, toh hum 4.5 min ka safety timer lagate hain
+            // Agar aapko gaana skip karna hai toh NEXT button hai hi.
+            clearTimeout(window.autoNextTimeout);
+            window.autoNextTimeout = setTimeout(() => {
+                playNext();
+            }, 270000); // 4.5 Minutes (Average song length)
         }
     }
 
     function playNext() {
         let next = currentIndex + 1;
         if(next < currentQueue.length) playSong(next);
-        else alert("End of playlist!");
+        else alert("Playlist Finished!");
     }
 
-    // 5. 3-TIMES DELETE LOGIC
-    function deleteSong3X(pName, sId, sName) {
-        const c1 = confirm("⚠️ STEP 1: Delete '" + sName + "'?");
-        if(c1) {
-            const c2 = confirm("🛑 STEP 2: Pakka? Yeh data hamesha ke liye hat jayega.");
-            if(c2) {
-                const c3 = confirm("❗ FINAL STEP: Confirm delete?");
-                if(c3) {
-                    db.ref(`collections/${pName}/${sId}`).remove();
+    // 4. 3-TIMES DELETE (As asked)
+    function deleteSong3X(p, id, name) {
+        if(confirm("⚠️ STEP 1: Delete '" + name + "'?")) {
+            if(confirm("🛑 STEP 2: Pakka delete kar doon?")) {
+                if(confirm("❗ STEP 3: Last chance, delete?")) {
+                    db.ref(`collections/${p}/${id}`).remove();
                 }
             }
         }
     }
 
-    // 6. Add Song
     function addSong() {
-        const name = document.getElementById('songName').value;
-        const url = document.getElementById('songUrl').value;
-        const playlist = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
-        
-        if(name && url) {
-            db.ref(`collections/${playlist}`).push({ name: name, url: url });
+        const n = document.getElementById('songName').value;
+        const u = document.getElementById('songUrl').value;
+        const p = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
+        if(n && u) {
+            db.ref(`collections/${p}`).push({ name: n, url: u });
             document.getElementById('songName').value = "";
             document.getElementById('songUrl').value = "";
-        } else {
-            alert("Please enter both Name and Link!");
         }
     }
 </script>
-
 </body>
 </html>
