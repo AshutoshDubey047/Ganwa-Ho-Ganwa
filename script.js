@@ -13,25 +13,24 @@ const db = firebase.database();
 
 let currentQueue = [];
 let currentSongIndex = -1;
-const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
 
-// 1. Load Everything
+// --- 1. Load Data ---
 db.ref('collections').on('value', (snap) => {
     const data = snap.val();
     const select = document.getElementById('playlistSelect');
     const activeP = select.value || "ALL_SONGS";
     
-    // Update Dropdown
     let options = '<option value="ALL_SONGS">✨ All Songs</option>';
     if (data) {
-        Object.keys(data).forEach(p => {
-            if (p !== "_init") options += `<option value="${p}">${p}</option>`;
-        });
+        Object.keys(data).forEach(p => { if (p !== "_init") options += `<option value="${p}">${p}</option>`; });
     }
     select.innerHTML = options;
     select.value = activeP;
 
     renderSongs(data, activeP);
+    
+    // CHECK URL FOR AUTO-PLAY AFTER RELOAD
+    checkUrlParams();
 });
 
 function renderSongs(data, selected) {
@@ -49,56 +48,66 @@ function renderSongs(data, selected) {
             let idx = currentQueue.length - 1;
 
             container.innerHTML += `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#121212; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #282828; transition:0.3s;" onmouseover="this.style.background='#181818'" onmouseout="this.style.background='#121212'">
-                    <div onclick="playSong(${idx})" style="flex:1; cursor:pointer;">
-                        <b style="color:#fff; font-size:15px;">${songs[id].name}</b><br>
-                        <small style="color:#1db954;">${pName}</small>
-                    </div>
-                    <button onclick="deleteSong('${pName}', '${id}')" style="background:none; border:none; color:#ff4444; font-size:18px; cursor:pointer; padding:5px;">🗑️</button>
+                <div class="song-card" onclick="playSong(${idx})" style="display:flex; justify-content:space-between; background:#121212; padding:15px; margin-bottom:8px; border-radius:10px; cursor:pointer; border:1px solid #222;">
+                    <div><b>${songs[id].name}</b><br><small style="color:#1db954;">${pName}</small></div>
                 </div>`;
         }
     }
 }
 
-// 2. Player Logic
+// --- 2. Play & Auto-Reload Logic ---
 function playSong(idx) {
     if (idx < 0 || idx >= currentQueue.length) return;
     currentSongIndex = idx;
     const song = currentQueue[idx];
-    const wrapper = document.getElementById('player-frame-wrapper');
+    const wrapper = document.getElementById('player-wrapper');
     const status = document.getElementById('playing-now');
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
         status.innerText = "▶ " + song.name;
-        // Iframe method is the ONLY one that bypasses Google block
-        wrapper.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none; background:#000;" allow="autoplay"></iframe>`;
+        wrapper.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
+
+        // UPDATE URL WITHOUT RELOAD (To keep track)
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?songIdx=' + idx;
+        window.history.pushState({path:newUrl},'',newUrl);
+
+        // START A TIMER (Reload after 4 minutes to play next)
+        // Note: Google Drive songs are usually 3-5 mins. 
+        // We set a 240 seconds (4 min) timer for auto-reload.
+        console.log("Auto-next timer started...");
+        setTimeout(() => {
+            playNextWithReload();
+        }, 240000); // 4 minutes
+    }
+}
+
+function playNextWithReload() {
+    let next = currentSongIndex + 1;
+    if (next < currentQueue.length) {
+        // Page Reload with next index in URL
+        window.location.href = window.location.pathname + "?songIdx=" + next;
     }
 }
 
 function playNextSong() {
     let next = currentSongIndex + 1;
     if (next < currentQueue.length) playSong(next);
-    else alert("Playlist Ended!");
 }
 
-// 3. Admin Tools
-function addSong() {
-    const n = document.getElementById('songName').value;
-    const u = document.getElementById('songUrl').value;
-    const p = document.getElementById('playlistSelect').value;
-    const target = (p === "ALL_SONGS") ? "Default" : p;
-
-    if (n && u) {
-        db.ref(`collections/${target}`).push({ name: n, url: u }).then(() => {
-            document.getElementById('songName').value = "";
-            document.getElementById('songUrl').value = "";
-        });
+// --- 3. URL Parameter Checker ---
+function checkUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const songIdx = urlParams.get('songIdx');
+    
+    if (songIdx !== null && currentQueue.length > 0) {
+        // Wait 1 second for everything to load, then play
+        setTimeout(() => {
+            if (currentSongIndex === -1) { // Only play if not already playing
+                playSong(parseInt(songIdx));
+            }
+        }, 1000);
     }
-}
-
-function deleteSong(p, id) {
-    if (confirm("Delete this song?")) db.ref(`collections/${p}/${id}`).remove();
 }
 
 function onPlaylistChange() {
