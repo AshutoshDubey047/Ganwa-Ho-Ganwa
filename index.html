@@ -1,100 +1,53 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
-    authDomain: "ganwaplayer.firebaseapp.com",
-    databaseURL: "https://ganwaplayer-default-rtdb.firebaseio.com",
-    projectId: "ganwaplayer",
-    storageBucket: "ganwaplayer.firebasestorage.app",
-    messagingSenderId: "28027251724",
-    appId: "1:28027251724:web:792638e52fd8d842671229"
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ganwa Player Fix</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; }
+        .container { max-width: 500px; margin: auto; padding: 15px; }
+        .card { background: #121212; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
+        select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
+        .btn-green { background: #1db954; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
+        
+        .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #1db954; }
+        .song-info { flex: 1; cursor: pointer; }
+        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-left: 10px; }
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const audio = document.getElementById('mainAudio');
+        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid #1db954; padding: 15px; box-sizing: border-box; text-align: center; }
+        #status { color: #1db954; font-weight: bold; font-size: 14px; margin-bottom: 8px; display: block; }
+        #player { background: #000; border-radius: 10px; height: 80px; border: 1px solid #333; overflow: hidden; }
+    </style>
+</head>
+<body>
 
-let currentQueue = [];
-let currentIndex = -1;
+<div class="container">
+    <h1 style="color: #1db954; text-align: center;">🎶 Ganwa Player</h1>
 
-// 1. DATA SYNC
-db.ref('collections').on('value', (snap) => {
-    const data = snap.val();
-    const select = document.getElementById('playlistSelect');
-    const oldVal = select.value || "ALL";
-    
-    let opts = '<option value="ALL">✨ All Playlists</option>';
-    if(data) Object.keys(data).forEach(p => { if(p !== "_init") opts += <option value="${p}">${p}</option>; });
-    select.innerHTML = opts;
-    select.value = oldVal;
+    <div class="card">
+        <select id="playlistSelect" onchange="renderSongs()"><option value="ALL">✨ All Playlists</option></select>
+    </div>
 
-    loadSongs();
-});
+    <div class="card">
+        <input type="text" id="songName" placeholder="Song Name">
+        <input type="text" id="songUrl" placeholder="Google Drive Link">
+        <button class="btn-green" onclick="addSong()">➕ ADD SONG</button>
+    </div>
 
-function loadSongs() {
-    const pSel = document.getElementById('playlistSelect').value;
-    const list = document.getElementById('songsList');
-    list.innerHTML = "";
-    currentQueue = [];
+    <div id="songsList"></div>
+</div>
 
-    db.ref('collections').once('value', (snap) => {
-        const data = snap.val();
-        for (let p in data) {
-            if (pSel !== "ALL" && p !== pSel) continue;
-            for (let id in data[p]) {
-                if (id === "_init") continue;
-                currentQueue.push({ ...data[p][id], pName: p, id: id });
-                let idx = currentQueue.length - 1;
-                list.innerHTML += 
-                    <div class="song-item">
-                        <div class="song-info" onclick="playSong(${idx})">
-                            <b>${data[p][id].name}</b><br><small style="color:#888;">${p}</small>
-                        </div>
-                        <button class="del-btn" onclick="deleteSong3X('${p}','${id}','${data[p][id].name}')">🗑️</button>
-                    </div>;
-            }
-        }
-    });
-}
+<footer>
+    <span id="status">Select a track</span>
+    <div id="player">
+        <div style="padding-top:30px; color:#444;">Click a song to play</div>
+    </div>
+    <button onclick="playNext()" style="background:none; border:1px solid #1db954; color:white; padding:5px 20px; border-radius:20px; cursor:pointer; margin-top:10px;">NEXT ⏭️</button>
+</footer>
 
-// 2. PLAY & AUTO-NEXT
-function playSong(idx) {
-    if(idx < 0 || idx >= currentQueue.length) return;
-    currentIndex = idx;
-    const song = currentQueue[idx];
-    const fileId = song.url.match(/[-\w]{25,}/);
-
-    if (fileId) {
-        document.getElementById('status').innerText = "▶ Playing: " + song.name;
-        // Direct Download Stream Bypass
-        audio.src = https://docs.google.com/uc?export=download&id=${fileId[0]};
-        audio.play().catch(() => console.log("User must click once for autoplay"));
-    }
-}
-
-audio.onended = () => { playNext(); };
-
-function playNext() {
-    let next = currentIndex + 1;
-    if(next < currentQueue.length) playSong(next);
-}
-
-// 3. 3-TIMES DELETE CONFIRMATION
-function deleteSong3X(playlist, songId, songName) {
-    const confirm1 = confirm("⚠️ STEP 1: Delete '" + songName + "'?");
-    if(confirm1) {
-        const confirm2 = confirm("🛑 STEP 2: Are you REALLY sure? This cannot be undone.");
-        if(confirm2) {
-            const confirm3 = confirm("❗ STEP 3: FINAL WARNING! Press OK to permanently remove this song.");
-            if(confirm3) {
-                db.ref(collections/${playlist}/${songId}).remove();
-            }
-        }
-    }
-}
-
-// 4. ADD SONG
-function addSong() {
-    const n = document.getElementById('songName').value;
-    const u = document.getElementById('songUrl').value;
-    const p = document.getElementById('playlistSelect').value === "ALL" ? "Default" : document.getElementById('playlistSelect').value;
-    if(n && u) db.ref(collections/${p}).push({ name: n, url: u });
-}
+<script src="script.js"></script>
+</body>
+</html>
