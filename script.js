@@ -15,7 +15,7 @@ const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SON
 let currentQueue = []; 
 let currentSongIndex = -1;
 
-// 1. Live Sync
+// 1. Live Data Sync
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
     const select = document.getElementById('playlistSelect');
@@ -34,7 +34,7 @@ db.ref('collections/').on('value', (snap) => {
     renderSongs(allData, currentVal);
 });
 
-// 2. Render Songs with Download Button
+// 2. Render Songs (With DELETE & DOWNLOAD buttons)
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
@@ -55,21 +55,20 @@ function renderSongs(allData, selectedP) {
 
             list.innerHTML += `
                 <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #1db954;">
-                    <div style="flex:1;">
+                    <div style="flex:1; cursor:pointer;" onclick="playSong(${index})">
                         <b style="color:white; font-size:14px;">${song.name}</b><br>
                         <small style="color:#666;">Playlist: ${pName}</small>
                     </div>
-                    <div style="display:flex; gap:5px;">
-                        <button onclick="playSong(${index})" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
-                        <a href="${dlLink}" target="_blank" download="${song.name}.mp3" style="background:#333; text-decoration:none; padding:8px 12px; border-radius:5px; color:white; font-size:14px;">📥</a>
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; border:none; padding:8px 12px; border-radius:5px; color:white; cursor:pointer;">🗑️</button>
+                    <div style="display:flex; gap:8px;">
+                        <a href="${dlLink}" target="_blank" title="Download" style="background:#333; padding:8px; border-radius:5px; color:white; text-decoration:none;">📥</a>
+                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; border:none; padding:8px; border-radius:5px; color:white; cursor:pointer;">🗑️</button>
                     </div>
                 </li>`;
         }
     }
 }
 
-// 3. Play & Auto-Next
+// 3. Play Logic (Force Direct Stream)
 function playSong(index) {
     if (index < 0 || index >= currentQueue.length) return;
     currentSongIndex = index;
@@ -79,38 +78,47 @@ function playSong(index) {
 
     const fileId = song.url.match(/[-\w]{25,}/);
     if (fileId) {
-        // Stream Link (Bypass Download Page)
-        const streamLink = `https://docs.google.com/uc?id=${fileId[0]}&export=open`;
-        title.innerText = "Playing: " + song.name;
+        // Method 1: Direct stream
+        const streamLink = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
+        title.innerText = "🔄 Loading: " + song.name;
         audio.src = streamLink;
-        audio.play().catch(() => {
-            // Backup link if primary fails
-            audio.src = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
-            audio.play();
-        });
+        audio.load();
+        
+        let playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(_ => {
+                title.innerText = "▶ Playing: " + song.name;
+            }).catch(error => {
+                console.log("Playback error: ", error);
+                title.innerText = "❌ Error! Click Play Button";
+            });
+        }
+    } else {
+        alert("Bhai, Drive link sahi nahi hai!");
     }
 }
 
 function playNextSong() {
     let next = currentSongIndex + 1;
-    if (next < currentQueue.length) playSong(next);
+    if (next < currentQueue.length) {
+        playSong(next);
+    } else {
+        document.getElementById('playing-now').innerText = "Playlist Completed";
+    }
 }
 
-// 4. Delete & Manage Functions
+// 4. Double-Check Delete Song
 function deleteSong(pName, sId) {
-    if (confirm("Check 1: Delete this song?") && confirm("Check 2: FINAL WARNING!")) {
-        db.ref(`collections/${pName}/${sId}`).remove();
+    const check1 = confirm("Kya aap is gaane ko delete karna chahte hain?");
+    if (check1) {
+        const check2 = confirm("FINAL WARNING: Pakka delete kar doon?");
+        if (check2) {
+            db.ref(`collections/${pName}/${sId}`).remove();
+        }
     }
 }
 
-function deleteFullPlaylist() {
-    const name = document.getElementById('playlistSelect').value;
-    if (protectedPlaylists.includes(name)) return alert("Reserved!");
-    if (confirm(`Delete entire "${name}"?`) && confirm("Last Warning!")) {
-        db.ref('collections/' + name).remove();
-    }
-}
-
+// 5. Global Actions
 function onPlaylistChange() {
     const val = document.getElementById('playlistSelect').value;
     document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
@@ -138,5 +146,13 @@ function createNewPlaylist() {
             document.getElementById('playlistSelect').value = name;
             onPlaylistChange();
         });
+    }
+}
+
+function deleteFullPlaylist() {
+    const name = document.getElementById('playlistSelect').value;
+    if (protectedPlaylists.includes(name)) return alert("Protected Playlist!");
+    if (confirm(`Delete entire "${name}"?`) && confirm("Last Final Warning!")) {
+        db.ref('collections/' + name).remove();
     }
 }
