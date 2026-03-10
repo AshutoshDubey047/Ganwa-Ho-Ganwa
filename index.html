@@ -3,45 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player Pro</title>
+    <title>Ganwa Player Fixed</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="padding-bottom: 200px;">
         <header><h1>🎶 Ganwa-Ho-Ganwa</h1></header>
 
         <div class="input-card">
             <h3>📁 Playlists</h3>
-            <div style="display: flex; gap: 8px;">
+            <div style="display:flex; gap:5px;">
                 <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
-                <button onclick="createNewPlaylist()" style="background:#fb8c00; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Create</button>
+                <button onclick="createNewPlaylist()" style="background:#fb8c00; color:white; border:none; padding:10px; border-radius:5px;">Create</button>
             </div>
-            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border-radius: 8px; margin-top: 10px; border:1px solid #444;">
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width:100%; padding:12px; margin-top:10px; background:#282828; color:white; border-radius:8px;">
                 </select>
-            <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 11px; padding: 6px; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete Playlist</button>
+            <button onclick="deleteFullPlaylist()" style="background:red; color:white; width:100%; margin-top:10px; border:none; padding:8px; border-radius:5px; font-size:12px;">🗑️ Delete Playlist</button>
         </div>
 
         <div class="input-card">
             <h3>➕ Add Song</h3>
-            <p style="font-size: 12px; color: #1db954;">Target: <b id="targetDisplayName">All Songs</b></p>
+            <p style="font-size:12px; color:#1db954;">Adding to: <b id="targetDisplayName">All Songs</b></p>
             <input type="text" id="songName" placeholder="Song Name">
             <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; padding: 12px; border-radius: 8px; border:none; cursor:pointer;">Add Song</button>
+            <button onclick="addSong()" style="background:#1db954; color:black; width:100%; font-weight:bold; padding:12px; border-radius:8px; border:none; margin-top:10px;">Add Song</button>
         </div>
 
-        <div class="playlist-section" style="margin-bottom: 180px;">
+        <div class="playlist-section">
             <ul id="playlist"></ul>
         </div>
 
-        <footer class="player-footer" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 15px; border-top: 2px solid #1db954; text-align: center; z-index: 100;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <p id="playing-now" style="color: #1db954; margin: 0; font-weight: bold; font-size: 13px; text-align: left;">Select a song</p>
-                <button onclick="playNextSong()" style="background: #333; color: white; border: 1px solid #1db954; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Next ⏭️</button>
+        <footer style="position:fixed; bottom:0; left:0; width:100%; background:#121212; border-top:2px solid #1db954; padding:15px; z-index:1000; text-align:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <p id="playing-now" style="color:#1db954; font-weight:bold; margin:0; font-size:14px;">Select a song</p>
+                <button onclick="playNextSong()" style="background:#333; color:white; border:1px solid #1db954; padding:5px 15px; border-radius:5px; cursor:pointer;">NEXT ⏭️</button>
             </div>
-            <div id="iframe-container">
-                <div style="height: 60px; background: #181818; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #444; border: 1px dashed #333;">Player Ready</div>
+            <div id="player-box">
+                <div style="height:60px; background:#181818; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#555; border:1px dashed #444;">Player Ready</div>
             </div>
         </footer>
     </div>
