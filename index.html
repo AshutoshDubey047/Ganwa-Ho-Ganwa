@@ -3,32 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa Player FIX</title>
+    <title>Ganwa Player Pro</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         :root { --green: #1db954; --black: #121212; }
-        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; overflow-x: hidden; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; }
+        .container { max-width: 500px; margin: auto; padding: 20px; }
         .card { background: var(--black); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
         input, select { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
-        .btn-add { background: var(--green); color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; }
+        .btn-add { background: var(--green); color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
         
-        /* SONG LIST */
+        /* SONG LIST ITEM */
         .song-item { display: flex; justify-content: space-between; align-items: center; background: #181818; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid var(--green); }
         .song-info { flex: 1; cursor: pointer; }
-        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-left: 10px; font-size: 11px; }
+        
+        /* DELETE BUTTON */
+        .del-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-left: 10px; }
 
-        /* FOOTER PLAYER */
-        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid var(--green); padding: 15px; box-sizing: border-box; text-align: center; z-index: 1000; }
-        #status { color: var(--green); font-weight: bold; font-size: 14px; margin-bottom: 10px; display: block; }
-        #player-box { height: 85px; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid var(--green); padding: 15px; box-sizing: border-box; text-align: center; }
+        #status { color: var(--green); font-weight: bold; margin-bottom: 8px; font-size: 14px; display: block; }
+        #player-box { background: #000; border-radius: 10px; height: 85px; overflow: hidden; border: 1px solid #333; }
+        .controls { margin-top: 10px; display: flex; justify-content: center; gap: 10px; }
+        .next-btn { background: none; border: 1px solid var(--green); color: white; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color: var(--green); text-align: center;">🎶 Ganwa Player Pro</h1>
+    <h1 style="color: var(--green); text-align: center;">🎶 Ganwa Player</h1>
 
     <div class="card">
         <select id="playlistSelect" onchange="renderSongs()"><option value="ALL">✨ All Playlists</option></select>
@@ -44,17 +47,17 @@
 </div>
 
 <footer>
-    <span id="status">Select a song to start</span>
+    <span id="status">Select a track to start...</span>
     <div id="player-box">
         <div style="padding-top:30px; color:#444;">Ready</div>
     </div>
-    <div style="margin-top:10px;">
-        <button onclick="playNext()" style="background:none; border:1px solid var(--green); color:white; padding:6px 20px; border-radius:20px; cursor:pointer; font-weight:bold;">NEXT ⏭️</button>
+    <div class="controls">
+        <button class="next-btn" onclick="playNext()">NEXT SONG ⏭️</button>
     </div>
 </footer>
 
 <script>
-    // 1. CONFIG
+    // 1. Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDr18ZsJyhqzI0fKw6Ix3iex3FfYhPAywU",
         authDomain: "ganwaplayer.firebaseapp.com",
@@ -70,19 +73,18 @@
     let currentQueue = [];
     let currentIndex = -1;
     let masterData = {};
+    let nextTimer;
 
-    // 2. DATA SYNC
+    // 2. Data Loading
     db.ref('collections').on('value', (snap) => {
         masterData = snap.val();
         if(!masterData) return;
-        
         const select = document.getElementById('playlistSelect');
-        const currentP = select.value || "ALL";
+        const oldP = select.value || "ALL";
         let opts = '<option value="ALL">✨ All Playlists</option>';
         Object.keys(masterData).forEach(p => { if(p !== "_init") opts += `<option value="${p}">${p}</option>`; });
         select.innerHTML = opts;
-        select.value = currentP;
-
+        select.value = oldP;
         renderSongs();
     });
 
@@ -91,7 +93,6 @@
         const list = document.getElementById('songsList');
         list.innerHTML = "";
         currentQueue = [];
-
         for (let p in masterData) {
             if (selP !== "ALL" && p !== selP) continue;
             for (let id in masterData[p]) {
@@ -101,7 +102,7 @@
                 list.innerHTML += `
                     <div class="song-item">
                         <div class="song-info" onclick="playSong(${idx})">
-                            <b>${masterData[p][id].name}</b><br><small>${p}</small>
+                            <b>${masterData[p][id].name}</b><br><small style="color:#1db954;">${p}</small>
                         </div>
                         <button class="del-btn" onclick="deleteSong3X('${p}','${id}','${masterData[p][id].name}')">DEL</button>
                     </div>`;
@@ -109,7 +110,7 @@
         }
     }
 
-    // 3. PLAY LOGIC (100% SUNAI DEGA)
+    // 3. Play & Auto-Next Logic (3 Minute Timer)
     function playSong(idx) {
         if(idx < 0 || idx >= currentQueue.length) return;
         currentIndex = idx;
@@ -118,30 +119,29 @@
 
         if (fileId) {
             document.getElementById('status').innerText = "▶ Playing: " + song.name;
-            // IFRAME is for the sound
             document.getElementById('player-box').innerHTML = 
-                `<iframe id="musicFrame" src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
+                `<iframe src="https://drive.google.com/file/d/${fileId[0]}/preview" width="100%" height="80" style="border:none;" allow="autoplay"></iframe>`;
             
-            // JUGAD: Google Iframe auto-next nahi deta, toh hum 4.5 min ka safety timer lagate hain
-            // Agar aapko gaana skip karna hai toh NEXT button hai hi.
-            clearTimeout(window.autoNextTimeout);
-            window.autoNextTimeout = setTimeout(() => {
+            // AUTO-NEXT: 3 minute (180000ms) baad agla gaana apne aap list mein load hoga
+            clearTimeout(nextTimer);
+            nextTimer = setTimeout(() => {
+                console.log("3 Minutes over, switching to next...");
                 playNext();
-            }, 190000); // 4.5 Minutes (Average song length)
+            }, 180000); 
         }
     }
 
     function playNext() {
         let next = currentIndex + 1;
         if(next < currentQueue.length) playSong(next);
-        else alert("Playlist Finished!");
+        else document.getElementById('status').innerText = "Playlist Completed!";
     }
 
-    // 4. 3-TIMES DELETE (As asked)
+    // 4. 3-Times Delete Confirmation
     function deleteSong3X(p, id, name) {
-        if(confirm("⚠️ STEP 1: Delete '" + name + "'?")) {
-            if(confirm("🛑 STEP 2: Pakka delete kar doon?")) {
-                if(confirm("❗ STEP 3: Last chance, delete?")) {
+        if(confirm("⚠️ STEP 1: Kya sach mein '" + name + "' delete karna hai?")) {
+            if(confirm("🛑 STEP 2: Soch lo, wapas nahi aayega!")) {
+                if(confirm("❗ STEP 3: FINAL CONFIRMATION! Delete kar doon?")) {
                     db.ref(`collections/${p}/${id}`).remove();
                 }
             }
@@ -161,4 +161,3 @@
 </script>
 </body>
 </html>
-
