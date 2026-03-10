@@ -5,68 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ganwa-Ho-Ganwa Ultra Pro</title>
     <link rel="stylesheet" href="style.css">
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-
     <div class="container">
         <header>
             <h1>🎶 Ganwa-Ho-Ganwa</h1>
-            <p style="text-align: center; color: #888; font-size: 14px;">Public Music Player</p>
         </header>
 
         <div class="input-card">
-            <h3>📁 Playlists & Folders</h3>
-            
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
-                <button onclick="createNewPlaylist()" style="background: #fb8c00; color: white; white-space: nowrap; border-radius: 5px; border: none; cursor: pointer; padding: 0 15px;">Create</button>
+            <h3>📁 Playlists</h3>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="text" id="newPlaylistInput" placeholder="Create New Playlist...">
+                <button onclick="createNewPlaylist()" style="background:#fb8c00; color:white;">Create</button>
             </div>
             
-            <label style="font-size: 13px; color: #aaa;">View & Add Target:</label>
-            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border: 1px solid #444; border-radius: 8px; cursor: pointer; margin-top: 5px;">
-                <option value="ALL_SONGS">✨ All Songs (Everything)</option>
-                <option value="Default">Default</option>
-                <option value="Ashutosh">Ashutosh</option>
-                <option value="Palak Dii">Palak Dii</option>
-                <option value="Laku">Laku</option>
-            </select>
+            <label>Switch View / Target:</label>
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 10px; background: #282828; color: white; border-radius: 8px;">
+                </select>
 
-            <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 12px; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                🗑️ Delete Current Playlist
+            <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 11px; padding: 5px; border:none; border-radius:4px; cursor:pointer;">
+                🗑️ Delete Selected Playlist
             </button>
         </div>
 
         <div class="input-card">
-            <h3>➕ Add New Song</h3>
-            <p style="font-size: 12px; color: #1db954; margin-bottom: 10px;">Target Folder: <b id="targetDisplayName">All Songs</b></p>
-            
-            <input type="text" id="songName" placeholder="Song Name (e.g. My Favorite Song)">
-            <input type="text" id="songUrl" placeholder="Google Drive Link (Anyone with Link)">
-            
-            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; font-size: 16px; border-radius: 8px; border: none; cursor: pointer; padding: 12px;">Add Song</button>
+            <h3>➕ Add Song</h3>
+            <p style="font-size: 12px; color: #1db954;">Target: <b id="targetDisplayName">All Songs</b></p>
+            <input type="text" id="songName" placeholder="Song Name">
+            <input type="text" id="songUrl" placeholder="Google Drive Link">
+            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold;">Add Song</button>
         </div>
 
         <div class="playlist-section">
-            <h4 style="margin-left: 10px; color: #888;">Track List:</h4>
-            <ul id="playlist">
-                </ul>
+            <ul id="playlist"></ul>
         </div>
 
         <footer class="player-footer">
-            <div class="player-content">
-                <p id="playing-now" style="margin: 0 0 10px 0; font-weight: bold; color: #1db954; font-size: 14px;">Select a song to play</p>
-                <div id="drive-player-wrapper">
-                    <div style="height: 60px; background: #181818; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #444; border: 1px dashed #333;">
-                        Player Ready
-                    </div>
-                </div>
-            </div>
+            <p id="playing-now">Select a song</p>
+            <div id="drive-player-wrapper"></div>
         </footer>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
