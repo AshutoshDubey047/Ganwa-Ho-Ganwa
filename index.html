@@ -5,48 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ganwa-Ho-Ganwa Ultra Pro</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
+
     <div class="container">
         <header>
             <h1>🎶 Ganwa-Ho-Ganwa</h1>
         </header>
 
         <div class="input-card">
-            <h3>📁 Playlists</h3>
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                <input type="text" id="newPlaylistInput" placeholder="Create New Playlist...">
-                <button onclick="createNewPlaylist()" style="background:#fb8c00; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Create</button>
+            <h3>📁 Manage Playlists</h3>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
+                <button onclick="createNewPlaylist()" style="background: #fb8c00; color: white;">Create</button>
             </div>
             
-            <label style="font-size: 12px; color: #888;">Switch View / Add Target:</label>
-            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border-radius: 8px; border: 1px solid #444; margin-top: 5px;">
-                </select>
+            <label>View / Add Target:</label>
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border-radius: 8px; border: 1px solid #444;">
+                <option value="ALL_SONGS">✨ All Songs</option>
+                <option value="Default">Default</option>
+                <option value="Ashutosh">Ashutosh</option>
+                <option value="Palak Dii">Palak Dii</option>
+                <option value="Laku">Laku</option>
+            </select>
 
-            <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 12px; padding: 10px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+            <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 12px; padding: 8px; border-radius: 5px; border: none; cursor: pointer;">
                 🗑️ Delete Selected Playlist
             </button>
         </div>
 
         <div class="input-card">
             <h3>➕ Add Song</h3>
-            <p style="font-size: 12px; color: #1db954;">Target Folder: <b id="targetDisplayName">All Songs</b></p>
+            <p style="font-size: 12px; color: #1db954;">Target: <b id="targetDisplayName">All Songs</b></p>
             <input type="text" id="songName" placeholder="Song Name">
             <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; border-radius:5px; border:none; padding:12px; cursor:pointer;">Add Song</button>
+            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; padding: 12px; border-radius: 8px;">Add Song</button>
         </div>
 
-        <div class="playlist-section">
+        <div class="playlist-section" style="margin-bottom: 120px;">
             <ul id="playlist"></ul>
         </div>
 
-        <footer class="player-footer" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 10px; border-top: 2px solid #1db954; text-align: center; z-index: 100;">
-            <p id="playing-now" style="color: #1db954; margin: 0 0 5px 0; font-weight: bold;">Select a song</p>
-            <div id="drive-player-wrapper"></div>
+        <footer class="player-footer" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 15px; border-top: 2px solid #1db954; text-align: center; z-index: 100;">
+            <p id="playing-now" style="color: #1db954; margin: 0 0 10px 0; font-weight: bold; font-size: 14px;">Select a song</p>
+            <audio id="mainAudio" controls autoplay style="width: 100%; height: 40px; filter: invert(100%);" onended="playNextSong()">
+                Your browser does not support audio.
+            </audio>
         </footer>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
