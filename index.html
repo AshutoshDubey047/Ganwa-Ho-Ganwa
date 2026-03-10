@@ -18,7 +18,7 @@
                 <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
                 <button onclick="createNewPlaylist()" style="background:#fb8c00; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Create</button>
             </div>
-            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border-radius: 8px; margin-top: 10px;">
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border-radius: 8px; margin-top: 10px; border:1px solid #444;">
                 </select>
             <button onclick="deleteFullPlaylist()" style="background: #ff4444; color: white; margin-top: 10px; width: 100%; font-size: 11px; padding: 6px; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete Playlist</button>
         </div>
@@ -31,15 +31,18 @@
             <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; padding: 12px; border-radius: 8px; border:none; cursor:pointer;">Add Song</button>
         </div>
 
-        <div class="playlist-section" style="margin-bottom: 160px;">
+        <div class="playlist-section" style="margin-bottom: 180px;">
             <ul id="playlist"></ul>
         </div>
 
         <footer class="player-footer" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 15px; border-top: 2px solid #1db954; text-align: center; z-index: 100;">
-            <p id="playing-now" style="color: #1db954; margin: 0 0 10px 0; font-weight: bold;">Select a song</p>
-            <audio id="mainAudio" controls autoplay style="width: 100%; height: 45px; filter: invert(100%);" onended="playNextSong()">
-                Your browser does not support audio.
-            </audio>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <p id="playing-now" style="color: #1db954; margin: 0; font-weight: bold; font-size: 13px; text-align: left;">Select a song</p>
+                <button onclick="playNextSong()" style="background: #333; color: white; border: 1px solid #1db954; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Next ⏭️</button>
+            </div>
+            <div id="iframe-container">
+                <div style="height: 60px; background: #181818; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #444; border: 1px dashed #333;">Player Ready</div>
+            </div>
         </footer>
     </div>
     <script src="script.js"></script>
