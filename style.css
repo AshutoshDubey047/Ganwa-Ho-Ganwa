@@ -1,12 +1,7 @@
-body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 120px; }
-.container { max-width: 600px; margin: auto; padding: 20px; }
+body { background: #121212; color: white; font-family: sans-serif; margin: 0; padding-bottom: 120px; }
+.container { max-width: 500px; margin: auto; padding: 20px; }
 .input-card { background: #181818; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
-input, select { width: 95%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; background: #282828; color: white; }
-button { background: #1db954; color: black; font-weight: bold; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
-.filters { margin: 15px 0; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
-.song-item { background: #181818; margin: 8px 0; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #1db954; }
-.actions { display: flex; gap: 8px; }
-.del-btn { background: #e91e63; color: white; padding: 5px 10px; }
-.player { position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 20px; border-top: 2px solid #1db954; text-align: center; }
-audio { width: 90%; filter: invert(1); }
-#playing-now { color: #1db954; font-weight: bold; margin-bottom: 5px; }
+input { width: 85%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; background: #282828; color: white; }
+button { padding: 10px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
+.player-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #000; padding: 15px; border-top: 2px solid #1db954; text-align: center; }
+#drive-player-wrapper { max-width: 500px; margin: auto; }
