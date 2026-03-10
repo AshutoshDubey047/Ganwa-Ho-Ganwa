@@ -7,46 +7,27 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 200px; }
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding-bottom: 220px; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
-        
-        /* Playlist & Input Cards */
         .card { background: #121212; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #282828; }
-        select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        .btn-add { background: #1db954; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
-
-        /* Song List Item */
+        select, input { width: 100%; padding: 12px; margin: 5px 0; background: #282828; color: #fff; border: none; border-radius: 8px; box-sizing: border-box; }
+        .btn-green { background: #1db954; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; margin-top: 10px; }
+        
+        /* Song List Style */
         .song-item { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            background: #181818; 
-            padding: 15px; 
-            margin-bottom: 10px; 
-            border-radius: 10px; 
-            border-left: 5px solid #1db954;
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #181818; padding: 15px; margin-bottom: 10px; 
+            border-radius: 10px; border-left: 5px solid #1db954;
         }
         .song-info { flex: 1; cursor: pointer; }
-        .song-info b { font-size: 16px; color: #fff; }
-        .song-info small { color: #1db954; }
-
-        /* DELETE BUTTON - Explicitly Visible */
         .del-btn { 
-            background: #ff4444; 
-            color: white; 
-            border: none; 
-            padding: 10px 15px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-left: 10px;
-            font-size: 12px;
-            min-width: 70px;
+            background: #ff4444; color: white; border: none; 
+            padding: 8px 12px; border-radius: 6px; font-weight: bold; 
+            cursor: pointer; margin-left: 10px; font-size: 11px;
         }
 
-        footer { position: fixed; bottom: 0; width: 100%; background: #111; border-top: 2px solid #1db954; padding: 20px; box-sizing: border-box; text-align: center; }
-        #status { color: #1db954; font-weight: bold; margin-bottom: 10px; display: block; }
-        audio { width: 100%; height: 40px; }
+        footer { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 2px solid #1db954; padding: 15px; box-sizing: border-box; z-index: 1000; }
+        #status { color: #1db954; font-weight: bold; font-size: 14px; margin-bottom: 8px; display: block; text-align: center; }
     </style>
 </head>
 <body>
@@ -55,21 +36,26 @@
     <h1 style="color: #1db954; text-align: center;">🎶 Ganwa Player</h1>
 
     <div class="card">
-        <select id="playlistSelect" onchange="loadSongs()"></select>
+        <select id="playlistSelect" onchange="loadSongs()"><option value="ALL">✨ All Songs</option></select>
     </div>
 
     <div class="card">
         <input type="text" id="songName" placeholder="Song Name">
         <input type="text" id="songUrl" placeholder="Google Drive Link">
-        <button class="btn-add" onclick="addSong()">➕ ADD SONG</button>
+        <button class="btn-green" onclick="addSong()">➕ ADD SONG</button>
     </div>
 
     <div id="songsList"></div>
 </div>
 
 <footer>
-    <span id="status">Select a song...</span>
-    <audio id="mainAudio" controls autoplay onended="playNext()"></audio>
+    <span id="status">Select a track to play</span>
+    <div id="playerContainer" style="background: #000; border-radius: 8px; overflow: hidden; height: 80px;">
+        <div style="color:#444; text-align:center; line-height:80px;">Ready to play</div>
+    </div>
+    <div style="text-align:center; margin-top:10px;">
+        <button onclick="playNext()" style="background:none; border:1px solid #1db954; color:white; padding:5px 20px; border-radius:20px; cursor:pointer;">NEXT SONG ⏭️</button>
+    </div>
 </footer>
 
 <script src="script.js"></script>
