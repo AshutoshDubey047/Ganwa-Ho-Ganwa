@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ganwa-Ho-Ganwa | Community Player</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎶 Ganwa-Ho-Ganwa</h1>
+            <div class="input-card">
+                <input type="text" id="songName" placeholder="Gaane ka naam...">
+                <input type="text" id="songUrl" placeholder="Drive ka Share Link...">
+                <select id="userTag">
+                    <option value="Ashutosh">Ashutosh</option>
+                    <option value="Palak Di">Palak Di</option>
+                    <option value="Laku">Laku</option>
+                </select>
+                <button onclick="addSong()">Add Song</button>
+            </div>
+        </header>
+
+        <div class="filters">
+            <button onclick="showCat('all')">All</button>
+            <button onclick="showCat('Ashutosh')">Ashutosh</button>
+            <button onclick="showCat('Palak Di')">Palak Di</button>
+            <button onclick="showCat('Laku')">Laku</button>
+        </div>
+
+        <div class="playlist-container">
+            <ul id="playlist"></ul>
+        </div>
+
+        <footer class="player">
+            <p id="playing-now">Select a song to play</p>
+            <audio id="main-player" controls></audio>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
