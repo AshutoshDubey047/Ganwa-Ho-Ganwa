@@ -3,46 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganwa-Ho-Ganwa Ultra</title>
+    <title>Ganwa-Ho-Ganwa Ultra Pro</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
+
     <div class="container">
-        <h1>🎶 Ganwa-Ho-Ganwa Ultra</h1>
+        <header>
+            <h1>🎶 Ganwa-Ho-Ganwa</h1>
+            <p style="text-align: center; color: #888; font-size: 14px;">Unlimited Playlists & Songs</p>
+        </header>
 
         <div class="input-card">
-            <h3>📁 My Playlists</h3>
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name...">
-                <button onclick="createNewPlaylist()">Create & Save</button>
+            <h3>📁 Manage Playlists</h3>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <input type="text" id="newPlaylistInput" placeholder="New Playlist Name (e.g. Party)">
+                <button onclick="createNewPlaylist()" style="background: #fb8c00; color: white; white-space: nowrap;">Create</button>
             </div>
             
-            <label>Select Playlist View:</label>
-            <select id="playlistSelect" onchange="loadSongs()" style="width:100%; padding:10px; background:#282828; color:white; border-radius:5px; margin-top:5px;">
+            <label style="font-size: 13px; color: #aaa;">Switch View:</label>
+            <select id="playlistSelect" onchange="onPlaylistChange()" style="width: 100%; padding: 12px; background: #282828; color: white; border: 1px solid #444; border-radius: 8px; cursor: pointer; margin-top: 5px;">
                 <option value="ALL_SONGS">✨ All Songs (Everything)</option>
                 <option value="Default">Default</option>
             </select>
         </div>
 
         <div class="input-card">
-            <h3>➕ Add Song</h3>
-            <p style="font-size:12px; color:#1db954;">Adding to: <b id="targetDisplayName">Default</b></p>
-            <input type="text" id="songName" placeholder="Song Name">
-            <input type="text" id="songUrl" placeholder="Google Drive Link">
-            <button onclick="addSong()" style="background:#1db954; width:100%; margin-top:10px;">Add Song</button>
+            <h3>➕ Add New Song</h3>
+            <p style="font-size: 12px; color: #1db954; margin-bottom: 10px;">Target: <b id="targetDisplayName">All Songs</b></p>
+            
+            <input type="text" id="songName" placeholder="Enter Song Name...">
+            <input type="text" id="songUrl" placeholder="Paste Google Drive Link...">
+            
+            <button onclick="addSong()" style="background: #1db954; color: black; width: 100%; margin-top: 10px; font-weight: bold; font-size: 16px;">Add to Playlist</button>
         </div>
 
         <div class="playlist-section">
-            <ul id="playlist"></ul>
+            <h4 style="margin-left: 10px; color: #888;">Playlist Tracks:</h4>
+            <ul id="playlist">
+                </ul>
         </div>
 
-        <div class="player-footer">
-            <p id="playing-now">Select a song</p>
-            <div id="drive-player-wrapper"></div>
-        </div>
+        <footer class="player-footer">
+            <div class="player-content">
+                <p id="playing-now" style="margin: 0 0 10px 0; font-weight: bold; color: #1db954;">Select a song to play</p>
+                <div id="drive-player-wrapper">
+                    <div style="height: 60px; background: #181818; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #444;">
+                        Player Ready
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
