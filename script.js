@@ -11,82 +11,92 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
-let currentPlaylist = "Default";
+let currentView = "ALL_SONGS";
 
-// 1. SWITCH PLAYLIST
-function switchPlaylist() {
+// 1. CREATE NEW PLAYLIST (Doesn't delete old ones)
+function createNewPlaylist() {
     let name = document.getElementById('newPlaylistName').value.trim();
     if (name) {
-        currentPlaylist = name;
-        document.getElementById('currentPName').innerText = name;
+        // Just add to dropdown
+        const select = document.getElementById('playlistSelect');
+        const option = document.createElement('option');
+        option.value = name;
+        option.text = name;
+        select.add(option);
+        select.value = name;
+        changePlaylistView();
         document.getElementById('newPlaylistName').value = "";
-        loadSongs(); // Nayi list load karo
     }
 }
 
-// 2. DELETE FULL PLAYLIST (Puri Playlist Khatam)
-function deleteFullPlaylist() {
-    if (currentPlaylist === "Default") {
-        return alert("Bhai, Default playlist delete mat karo!");
-    }
-    if (confirm(`Kya aap puri "${currentPlaylist}" playlist aur uske saare gaane delete karna chahte hain?`)) {
-        db.ref('collections/' + currentPlaylist).remove().then(() => {
-            alert("Playlist Deleted!");
-            currentPlaylist = "Default";
-            document.getElementById('currentPName').innerText = "Default";
-            loadSongs();
-        });
-    }
+// 2. SWITCH VIEW LOGIC
+function changePlaylistView() {
+    currentView = document.getElementById('playlistSelect').value;
+    document.getElementById('currentPName').innerText = (currentView === "ALL_SONGS") ? "All Songs" : currentView;
+    document.getElementById('targetPName').innerText = (currentView === "ALL_SONGS") ? "Default" : currentView;
+    loadSongs();
 }
 
 // 3. ADD SONG
 function addSong() {
     const name = document.getElementById('songName').value;
     const url = document.getElementById('songUrl').value;
+    // Agar "All Songs" par ho toh Default mein save karo, warna current playlist mein
+    let target = (currentView === "ALL_SONGS") ? "Default" : currentView;
+
     if (name && url) {
-        db.ref('collections/' + currentPlaylist).push({ name, url });
+        db.ref('collections/' + target).push({ name, url, playlistName: target });
         document.getElementById('songName').value = "";
         document.getElementById('songUrl').value = "";
+        alert("Saved to " + target);
     }
 }
 
-// 4. DELETE SINGLE SONG
-function deleteSong(id) {
-    if(confirm("Ye gaana hatayein?")) {
-        db.ref('collections/' + currentPlaylist + '/' + id).remove();
-    }
-}
-
-// 5. LOAD SONGS (Refreshes on switch)
+// 4. LOAD SONGS (The Master Fetch)
 function loadSongs() {
-    // Purana listener band karke naya chalu karna zaroori hai
-    db.ref('collections/' + currentPlaylist).off(); 
-    
-    db.ref('collections/' + currentPlaylist).on('value', (snap) => {
-        const data = snap.val();
-        const list = document.getElementById('playlist');
+    const list = document.getElementById('playlist');
+    db.ref('collections/').off(); // Clear old listeners
+
+    db.ref('collections/').on('value', (snap) => {
+        const allData = snap.val();
         list.innerHTML = "";
         
-        if (!data) {
-            list.innerHTML = `<p style='text-align:center; color:#888;'>"${currentPlaylist}" khali hai. Gaane add karein!</p>`;
+        if (!allData) {
+            list.innerHTML = "<p style='text-align:center;'>Empty Database.</p>";
             return;
         }
 
-        for (let id in data) {
-            const song = data[id];
-            list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:10px 0; padding:15px; border-radius:10px; border-left:4px solid #1db954;">
-                    <span><b>${song.name}</b></span>
-                    <div>
-                        <button onclick="playSong('${song.url}', '${song.name}')" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶ Play</button>
-                        <button onclick="deleteSong('${id}')" style="background:#ff4444; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; color:white; margin-left:5px;">🗑️</button>
-                    </div>
-                </li>`;
+        for (let pName in allData) {
+            // Agar specific playlist dekhni hai toh baaki skip karo
+            if (currentView !== "ALL_SONGS" && pName !== currentView) continue;
+
+            const songs = allData[pName];
+            for (let id in songs) {
+                const song = songs[id];
+                list.innerHTML += `
+                    <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; margin:8px 0; padding:12px; border-radius:10px; border-left:4px solid ${pName === 'Default' ? '#1db954' : '#fb8c00'};">
+                        <div>
+                            <b>${song.name}</b> <br>
+                            <small style="color:#666;">Playlist: ${pName}</small>
+                        </div>
+                        <div>
+                            <button onclick="playSong('${song.url}', '${song.name}')" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
+                            <button onclick="deleteSong('${pName}', '${id}')" style="background:#ff4444; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; color:white; margin-left:5px;">🗑️</button>
+                        </div>
+                    </li>`;
+            }
         }
     });
 }
 
-// 6. PLAYER LOGIC
+// 5. DELETE LOGIC
+function deleteSong(pName, sId) {
+    if(confirm("Delete this song?")) {
+        db.ref(`collections/${pName}/${sId}`).remove();
+    }
+}
+
+// 6. PLAYER
 function playSong(rawUrl, name) {
     const wrapper = document.getElementById('drive-player-wrapper');
     const title = document.getElementById('playing-now');
@@ -97,4 +107,5 @@ function playSong(rawUrl, name) {
     }
 }
 
+// Initial start
 loadSongs();
