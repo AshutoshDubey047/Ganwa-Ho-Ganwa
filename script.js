@@ -11,23 +11,16 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.database();
 
-// 1. In Playlists ko koi delete nahi kar payega
 const protectedPlaylists = ["Ashutosh", "Palak Dii", "Laku", "Default", "ALL_SONGS"];
 
-// --- GLOBAL DATA SYNC ---
+// 1. Live Sync & Initial Load
 db.ref('collections/').on('value', (snap) => {
     const allData = snap.val();
-    updateDropdown(allData);
-    const currentView = document.getElementById('playlistSelect').value || "ALL_SONGS";
-    renderSongs(allData, currentView);
-});
-
-// --- UPDATE DROPDOWN ---
-function updateDropdown(allData) {
     const select = document.getElementById('playlistSelect');
-    const currentVal = select.value;
+    const currentVal = select.value || "ALL_SONGS";
     
-    let html = '<option value="ALL_SONGS">✨ All Songs (Everything)</option>';
+    // Dropdown rebuilding only when necessary
+    let html = '<option value="ALL_SONGS">✨ All Songs</option>';
     html += '<option value="Default">Default</option>';
     html += '<option value="Ashutosh">Ashutosh</option>';
     html += '<option value="Palak Dii">Palak Dii</option>';
@@ -35,83 +28,18 @@ function updateDropdown(allData) {
     
     if (allData) {
         Object.keys(allData).forEach(pName => {
-            // Jo pehle se add nahi hain dropdown mein unhe add karo
             if (!protectedPlaylists.includes(pName) && pName !== "_init") {
                 html += `<option value="${pName}">${pName}</option>`;
             }
         });
     }
     
-    if (select.innerHTML !== html) {
-        select.innerHTML = html;
-        select.value = currentVal || "ALL_SONGS";
-    }
-}
+    select.innerHTML = html;
+    select.value = currentVal;
+    renderSongs(allData, currentVal);
+});
 
-// --- SWITCH VIEW ---
-function onPlaylistChange() {
-    const selectedP = document.getElementById('playlistSelect').value;
-    document.getElementById('targetDisplayName').innerText = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
-    
-    db.ref('collections/').once('value', (snap) => {
-        renderSongs(snap.val(), selectedP);
-    });
-}
-
-// --- DELETE FULL PLAYLIST (With Double Check & Protection) ---
-function deleteFullPlaylist() {
-    const select = document.getElementById('playlistSelect');
-    const name = select.value;
-
-    // Protection Check
-    if (protectedPlaylists.includes(name)) {
-        alert(`Bhai, "${name}" playlist ko delete karna allow nahi hai! Ye protected hai.`);
-        return;
-    }
-
-    // Double Confirmation Logic
-    const firstCheck = confirm(`[CHECK 1] Kya aap sach mein poori "${name}" playlist delete karna chahte hain?`);
-    if (firstCheck) {
-        const secondCheck = confirm(`[CHECK 2 - DOUBLE CHECK] Pakka na? Iske saare gaane hamesha ke liye ud jayenge!`);
-        if (secondCheck) {
-            db.ref('collections/' + name).remove().then(() => {
-                alert("Playlist Deleted Successfully!");
-                select.value = "ALL_SONGS";
-                onPlaylistChange();
-            });
-        }
-    }
-}
-
-// --- ADD SONG ---
-function addSong() {
-    const name = document.getElementById('songName').value;
-    const url = document.getElementById('songUrl').value;
-    const selectedP = document.getElementById('playlistSelect').value;
-    let target = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
-
-    if (name && url) {
-        db.ref('collections/' + target).push({ name, url }).then(() => {
-            document.getElementById('songName').value = "";
-            document.getElementById('songUrl').value = "";
-            alert("Added!");
-        });
-    }
-}
-
-function createNewPlaylist() {
-    let nameInput = document.getElementById('newPlaylistInput');
-    let name = nameInput.value.trim();
-    if (name) {
-        db.ref('collections/' + name).update({ _init: true }).then(() => {
-            nameInput.value = "";
-            document.getElementById('playlistSelect').value = name;
-            onPlaylistChange();
-        });
-    }
-}
-
-// --- MASTER RENDER ---
+// 2. Render Songs with Filter
 function renderSongs(allData, selectedP) {
     const list = document.getElementById('playlist');
     list.innerHTML = "";
@@ -124,26 +52,70 @@ function renderSongs(allData, selectedP) {
             if (id === "_init") continue;
             const song = songs[id];
             list.innerHTML += `
-                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid ${pName === 'Default' ? '#1db954' : '#fb8c00'};">
+                <li class="song-item" style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:12px; margin:8px 0; border-radius:10px; border-left:4px solid #1db954;">
                     <span><b>${song.name}</b><br><small style="color:#666;">Playlist: ${pName}</small></span>
                     <div>
-                        <button onclick="playSong('${song.url}', '${song.name}')" style="background:#1db954; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">▶</button>
-                        <button onclick="deleteSong('${pName}', '${id}')" style="background:#ff4444; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; color:white; margin-left:5px;">🗑️</button>
+                        <button onclick="playSong('${song.url}', '${song.name}')">▶</button>
+                        <button onclick="deleteSong('${pName}', '${id}')" style="background:red; margin-left:5px;">🗑️</button>
                     </div>
                 </li>`;
         }
     }
 }
 
+// 3. Global Functions
+function onPlaylistChange() {
+    const val = document.getElementById('playlistSelect').value;
+    document.getElementById('targetDisplayName').innerText = (val === "ALL_SONGS") ? "Default" : val;
+    db.ref('collections/').once('value', (snap) => renderSongs(snap.val(), val));
+}
+
+function createNewPlaylist() {
+    let input = document.getElementById('newPlaylistInput');
+    let name = input.value.trim();
+    if (name && !protectedPlaylists.includes(name)) {
+        db.ref('collections/' + name).update({ _init: true }).then(() => {
+            input.value = "";
+            document.getElementById('playlistSelect').value = name;
+            onPlaylistChange();
+        });
+    }
+}
+
+function addSong() {
+    const name = document.getElementById('songName').value;
+    const url = document.getElementById('songUrl').value;
+    const selectedP = document.getElementById('playlistSelect').value;
+    let target = (selectedP === "ALL_SONGS") ? "Default" : selectedP;
+
+    if (name && url) {
+        db.ref('collections/' + target).push({ name, url }).then(() => {
+            document.getElementById('songName').value = "";
+            document.getElementById('songUrl').value = "";
+        });
+    }
+}
+
+function deleteFullPlaylist() {
+    const name = document.getElementById('playlistSelect').value;
+    if (protectedPlaylists.includes(name)) return alert("Reserved playlist cannot be deleted!");
+    
+    if (confirm(`Double Check: Delete "${name}"?`) && confirm(`Final Warning: Delete ALL songs in "${name}"?`)) {
+        db.ref('collections/' + name).remove().then(() => {
+            document.getElementById('playlistSelect').value = "ALL_SONGS";
+            onPlaylistChange();
+        });
+    }
+}
+
 function deleteSong(pName, sId) {
-    if(confirm("Delete gaana?")) { db.ref(`collections/${pName}/${sId}`).remove(); }
+    if(confirm("Delete?")) db.ref(`collections/${pName}/${sId}`).remove();
 }
 
 function playSong(url, name) {
     const match = url.match(/[-\w]{25,}/);
     if (match) {
         document.getElementById('playing-now').innerText = "Playing: " + name;
-        document.getElementById('drive-player-wrapper').innerHTML = 
-        `<iframe src="https://drive.google.com/file/d/${match[0]}/preview" width="100%" height="60" style="border:none; border-radius:10px; background:#000;" allow="autoplay"></iframe>`;
+        document.getElementById('drive-player-wrapper').innerHTML = `<iframe src="https://drive.google.com/file/d/${match[0]}/preview" width="100%" height="60" style="border:none; border-radius:10px; background:#000;"></iframe>`;
     }
 }
